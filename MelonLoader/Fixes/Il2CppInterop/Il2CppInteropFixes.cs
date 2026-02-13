@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 using Il2CppInterop.Generator.Extensions;
 using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.Injection;
@@ -16,6 +17,9 @@ using HarmonyLib;
 using Il2CppInterop.Generator.Contexts;
 using AsmResolver.DotNet;
 using Il2CppInterop.HarmonySupport;
+using Iced.Intel;
+using Il2CppInterop.Common.XrefScans;
+using FlowControl = Iced.Intel.FlowControl;
 
 #pragma warning disable CS8632
 
@@ -63,6 +67,12 @@ namespace MelonLoader.Fixes.Il2CppInterop
         private static MethodInfo _rewriteGlobalContext_GetNewAssemblyForOriginal_Prefix;
         private static MethodInfo _rewriteGlobalContext_TryGetNewTypeForOriginal;
         private static MethodInfo _rewriteGlobalContext_TryGetNewTypeForOriginal_Prefix;
+        private static MethodInfo _garbageCollector_RunFinalizer_FindTargetMethod;
+        private static MethodInfo _garbageCollector_RunFinalizer_FindTargetMethod_Prefix;
+        
+        public static Type InjectorHelpersType { get; private set; }
+        public static MethodInfo DecoderForAddress { get; private set; }
+        public static MethodInfo ExtractTargetAddress { get; private set; }
 
         internal static void Install()
         {
@@ -76,14 +86,18 @@ namespace MelonLoader.Fixes.Il2CppInterop
                 Type il2cppType = typeof(IL2CPP);
                 Type harmonySupportType = typeof(HarmonySupport);
 
-                Type injectorHelpersType = classInjectorType.Assembly.GetType("Il2CppInterop.Runtime.Injection.InjectorHelpers");
-                if (injectorHelpersType == null)
+                InjectorHelpersType = classInjectorType.Assembly.GetType("Il2CppInterop.Runtime.Injection.InjectorHelpers");
+                if (InjectorHelpersType == null)
                     throw new Exception("Failed to get InjectorHelpers");
+                
 
                 Type detourMethodPatcherType = harmonySupportType.Assembly.GetType("Il2CppInterop.HarmonySupport.Il2CppDetourMethodPatcher");
                 if (detourMethodPatcherType == null)
                     throw new Exception("Failed to get Il2CppDetourMethodPatcher");
-
+                
+                var runFinalizer = classInjectorType.Assembly.GetType("Il2CppInterop.Runtime.Injection.Hooks.GarbageCollector_RunFinalizer_Patch");
+                if (runFinalizer == null)
+                    throw new Exception("Failed to get GarbageCollector_RunFinalizer_Patch");
                 //_systemTypeFromIl2CppType = classInjectorType.GetMethod("SystemTypeFromIl2CppType", BindingFlags.NonPublic | BindingFlags.Static);
                 //if (_systemTypeFromIl2CppType == null)
                 //    throw new Exception("Failed to get ClassInjector.SystemTypeFromIl2CppType");
@@ -114,7 +128,7 @@ namespace MelonLoader.Fixes.Il2CppInterop
                 if (_emitObjectToPointer == null)
                     throw new Exception("Failed to get ILGeneratorEx.EmitObjectToPointer");
 
-                _injectorHelpers_AddTypeToLookup = injectorHelpersType.GetMethod("AddTypeToLookup", 
+                _injectorHelpers_AddTypeToLookup = InjectorHelpersType.GetMethod("AddTypeToLookup", 
                     BindingFlags.NonPublic | BindingFlags.Static, 
                     [typeof(Type), typeof(IntPtr)]);
                 if (_injectorHelpers_AddTypeToLookup == null)
@@ -148,6 +162,14 @@ namespace MelonLoader.Fixes.Il2CppInterop
                 if (_rewriteGlobalContext_TryGetNewTypeForOriginal == null)
                     throw new Exception("Failed to get RewriteGlobalContext.TryGetNewTypeForOriginal");
 
+                _garbageCollector_RunFinalizer_FindTargetMethod = runFinalizer.GetMethod("FindTargetMethod"); 
+                if (_garbageCollector_RunFinalizer_FindTargetMethod == null)
+                    throw new Exception("Failed to get GarbageCollector.RunFinalizer.FindTargetMethod");
+
+                
+                DecoderForAddress = typeof(XrefScanner).GetMethod("DecoderForAddress", BindingFlags.NonPublic | BindingFlags.Static);
+                ExtractTargetAddress = typeof(XrefScanner).GetMethod("ExtractTargetAddress", BindingFlags.NonPublic | BindingFlags.Static);
+
                 _fixedFindType = thisType.GetMethod(nameof(FixedFindType), BindingFlags.NonPublic | BindingFlags.Static);
                 _fixedAddTypeToLookup = thisType.GetMethod(nameof(FixedAddTypeToLookup), BindingFlags.NonPublic | BindingFlags.Static);
                 _fixedIsByRef = thisType.GetMethod(nameof(FixedIsByRef), BindingFlags.NonPublic | BindingFlags.Static);
@@ -163,7 +185,7 @@ namespace MelonLoader.Fixes.Il2CppInterop
                 _rewriteGlobalContext_Dispose_Prefix = thisType.GetMethod(nameof(RewriteGlobalContext_Dispose_Prefix), BindingFlags.NonPublic | BindingFlags.Static);
                 _rewriteGlobalContext_GetNewAssemblyForOriginal_Prefix = thisType.GetMethod(nameof(RewriteGlobalContext_GetNewAssemblyForOriginal_Prefix), BindingFlags.NonPublic | BindingFlags.Static);
                 _rewriteGlobalContext_TryGetNewTypeForOriginal_Prefix = thisType.GetMethod(nameof(RewriteGlobalContext_TryGetNewTypeForOriginal_Prefix), BindingFlags.NonPublic | BindingFlags.Static);
-
+                _garbageCollector_RunFinalizer_FindTargetMethod_Prefix = thisType.GetMethod(nameof(GarbageCollector_RunFinalizer_FindTargetMethod_Prefix), BindingFlags.NonPublic | BindingFlags.Static);
                 /*
                 MelonDebug.Msg("Patching Il2CppInterop ClassInjector.SystemTypeFromIl2CppType...");
                 Core.HarmonyInstance.Patch(_systemTypeFromIl2CppType,
@@ -213,6 +235,14 @@ namespace MelonLoader.Fixes.Il2CppInterop
                 MelonDebug.Msg("Patching Il2CppInterop RewriteGlobalContext.TryGetNewTypeForOriginal...");
                 Core.HarmonyInstance.Patch(_rewriteGlobalContext_TryGetNewTypeForOriginal,
                     new HarmonyMethod(_rewriteGlobalContext_TryGetNewTypeForOriginal_Prefix));
+                if (runFinalizer.GetField("s_signatures", BindingFlags.NonPublic | BindingFlags.Static) != null)
+                {
+                    MelonDebug.Msg("Patching Il2CppInterop GarbageCollector_RunFinalizer_Patch.FindTargetMethod...");
+                    Core.HarmonyInstance.Patch(_garbageCollector_RunFinalizer_FindTargetMethod, new HarmonyMethod(
+                        _garbageCollector_RunFinalizer_FindTargetMethod_Prefix
+                    ));
+                }
+                
             }
             catch (Exception e)
             {
@@ -603,6 +633,150 @@ namespace MelonLoader.Fixes.Il2CppInterop
 
                     if (existing != null)
                         list.Remove(existing);
+                }
+            }
+        }
+
+        private static bool GarbageCollector_RunFinalizer_FindTargetMethod_Prefix(ref IntPtr __result)
+        {
+            var getIl2cppExportMethod = InjectorHelpersType.GetMethod("GetIl2CppExport",  BindingFlags.NonPublic | BindingFlags.Static);
+            var unhandledException = (IntPtr)getIl2cppExportMethod.Invoke(null, new object[] { nameof(IL2CPP.il2cpp_unhandled_exception) })!;
+            var actualUnhandled = XrefScannerLowLevel.JumpTargets(unhandledException).FirstOrDefault();
+            if (actualUnhandled == IntPtr.Zero)
+                actualUnhandled = unhandledException;
+
+            MelonDebug.Msg($"Runtime::UnhandledException: 0x{actualUnhandled.ToInt64():X}");
+            var il2CppModule = (ProcessModule)InjectorHelpersType.GetField("Il2CppModule", BindingFlags.NonPublic | BindingFlags.Static)?.GetValue(null);
+            var callers = FindCallersOf(
+                actualUnhandled,
+                il2CppModule.BaseAddress,
+                il2CppModule.ModuleMemorySize
+            ).ToList();
+
+            MelonDebug.Msg($"Found {callers.Count} callers of UnhandledException");
+
+            foreach (var caller in callers.Where(IsRunFinalizerPattern ))
+            {
+                __result = caller;
+                return false;
+            }
+
+            __result = IntPtr.Zero;
+            MelonDebug.Msg("Returning true because can't find pattern for finalizer");
+            return true;
+        }
+
+        public static int EstimateFunctionSize(IntPtr functionStart, int maxSize = 1000)
+        {
+            Decoder decoder = (Decoder)DecoderForAddress.Invoke(null, new object[]
+            {
+                functionStart, maxSize
+            })!;        
+            var startIP = (ulong)functionStart;
+
+            while (true)
+            {
+                var instructionIP = decoder.IP;
+                decoder.Decode(out var instruction);
+
+                if (decoder.LastError == DecoderError.NoMoreBytes)
+                {
+                    return maxSize;
+                }
+
+                if (instruction.FlowControl == FlowControl.Return)
+                {
+                    return (int)(decoder.IP - startIP);
+                }
+
+                if (instruction.Mnemonic == Mnemonic.Int3)
+                {
+                    return (int)(instructionIP - startIP);
+                }
+
+                if (instruction.Mnemonic == Mnemonic.Int || instruction.Mnemonic == Mnemonic.Int1)
+                {
+                    return (int)(instructionIP - startIP);
+                }
+            }
+        }
+        
+        private static bool IsRunFinalizerPattern(IntPtr addr)
+        {
+            var callTargets = XrefScannerLowLevel.JumpTargets(addr).ToArray();
+            var size = EstimateFunctionSize(addr);
+
+            MelonDebug.Msg(
+                $"Candidate: 0x{addr.ToInt64():X}, calls: {callTargets.Length}, size: {size} bytes"
+            );
+
+            // Must have 2-4 calls (GetFinalizer, Invoke, UnhandledException)
+            if (callTargets.Length is < 2 or > 4)
+            {
+                MelonDebug.Msg($"  -> Rejected (call count: {callTargets.Length})");
+                return false;
+            }
+
+            // Must call Runtime::Invoke
+            var runtimeInvoke = FindRuntimeInvoke();
+            if (runtimeInvoke != IntPtr.Zero && !callTargets.Contains(runtimeInvoke))
+            {
+                MelonDebug.Msg("  -> Rejected (doesn't call Runtime::Invoke)");
+                return false;
+            }
+
+            // RunFinalizer is small (typically 60-150 bytes)
+            if (size > 200)
+            {
+                MelonDebug.Msg($"  -> Rejected (too large: {size} bytes)");
+                return false;
+            }
+
+            MelonDebug.Msg("  -> Matched!");
+            return true;
+        }
+
+        private static IntPtr FindRuntimeInvoke()
+        {
+            var getIl2cppExportMethod = InjectorHelpersType.GetMethod("GetIl2CppExport",  BindingFlags.NonPublic | BindingFlags.Static);
+            IntPtr export = (IntPtr)getIl2cppExportMethod.Invoke(null, new object?[] { nameof(IL2CPP.il2cpp_runtime_invoke) })!;
+            if (export == IntPtr.Zero) return IntPtr.Zero;
+
+            var target = XrefScannerLowLevel.JumpTargets(export).FirstOrDefault();
+            return target != IntPtr.Zero ? target : export;
+        }
+        
+        public static IEnumerable<IntPtr> FindCallersOf(IntPtr targetFunction, IntPtr moduleBase, int moduleSize)
+        {
+            Decoder decoder = (Decoder)DecoderForAddress.Invoke(null, new object[]
+            {
+                moduleBase, moduleSize
+            })!;
+            var currentFunctionStart = moduleBase;
+
+            while (true)
+            {
+                decoder.Decode(out var instruction);
+                if (decoder.LastError == DecoderError.NoMoreBytes)
+                    yield break;
+
+                if (instruction.Mnemonic == Mnemonic.Int3)
+                {
+                    currentFunctionStart = (IntPtr)decoder.IP;
+                    continue;
+                }
+
+                if (instruction.Mnemonic == Mnemonic.Call)
+                {
+                    ulong callTarget = (ulong)ExtractTargetAddress.Invoke(null, new object[]
+                    {
+                        instruction
+                    })!;
+
+                    if (callTarget != 0 && (IntPtr)callTarget == targetFunction)
+                    {
+                        yield return currentFunctionStart;
+                    }
                 }
             }
         }

@@ -51,7 +51,7 @@
         <MonoModVersion>22.7.31.1</MonoModVersion>
         <MonoCecilVersion>0.11.6</MonoCecilVersion>
         <HarmonyXVersion>2.10.2</HarmonyXVersion>
-        <AssetToolsVersion>3.0.0-preview3</AssetToolsVersion>
+        <AssetToolsVersion>3.0.1</AssetToolsVersion>
         <AssetRipperVersion>3.2.0</AssetRipperVersion>
         <AsmResolverVersion>6.0.0-beta.3</AsmResolverVersion>
         <Il2CppInteropVersion>1.5.1</Il2CppInteropVersion>

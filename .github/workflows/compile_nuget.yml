@@ -10,7 +10,7 @@ jobs:
     name: Create NuGet Package
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Setup dotnet
         uses: actions/setup-dotnet@v5
         with:
@@ -22,7 +22,7 @@ jobs:
         run: dotnet pack -c Release -p:Platform="x64" -p:Version="${{ inputs.VERSION }}"
 
       - name: Upload NuGet Artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: MelonLoader.NuGet
           path: Output/Release/win-x64/MelonLoader/LavaGang.MelonLoader.${{ inputs.VERSION }}.nupkg
