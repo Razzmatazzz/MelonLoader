@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using MelonLoader.Logging;
+using HarmonyLib;
 
 #pragma warning disable 0618
 
@@ -312,7 +313,13 @@ namespace MelonLoader
 
         public Incompatibility[] FindIncompatiblitiesFromContext()
         {
-            return FindIncompatiblities(MelonUtils.CurrentGameAttribute, Process.GetCurrentProcess().ProcessName, UnityInformationHandler.GameVersion, BuildInfo.VersionNumber, MelonUtils.HashCode, MelonUtils.CurrentPlatform, MelonUtils.CurrentDomain);
+            return FindIncompatiblities(MelonUtils.CurrentGameAttribute,
+                Process.GetCurrentProcess().ProcessName, 
+                UnityInformationHandler.GameVersion, 
+                Properties.BuildInfo.VersionNumber, 
+                MelonUtils.HashCode, 
+                MelonUtils.CurrentPlatform,
+                MelonUtils.CurrentDomain);
         }
 
         public static void PrintIncompatibilities(Incompatibility[] incompatibilities, MelonBase melon)
@@ -434,10 +441,23 @@ namespace MelonLoader
             return true;
         }
 
-        private void HarmonyInit()
+        internal void HarmonyInit()
         {
-            if (!MelonAssembly.HarmonyDontPatchAll)
-                HarmonyInstance.PatchAll(MelonAssembly.Assembly);
+            if (MelonAssembly.HarmonyDontPatchAll)
+                return;
+
+            var allTypes = MelonAssembly.Assembly.GetValidTypes();
+            foreach (var type in allTypes)
+                try
+                {
+                    var proc = HarmonyInstance.CreateClassProcessor(type);
+                    proc.Patch();
+                }
+                catch (Exception ex)
+                {
+                    LoggerInstance.Error($"Failed to Harmony Patch {type.FullName}");
+                    LoggerInstance.Error(ex);
+                }
         }
 
         private void LoaderInitialized()

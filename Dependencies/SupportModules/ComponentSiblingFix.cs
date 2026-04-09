@@ -15,7 +15,7 @@ namespace MelonLoader.Support
         private static bool _failure;
 
 #if SM_Il2Cpp
-        private delegate bool SetAsLastSiblingDelegate(IntPtr transformptr);
+        private delegate void SetAsLastSiblingDelegate(IntPtr transformptr);
 #else
         private static MethodInfo _methodInfo;
         private delegate void SetAsLastSiblingDelegate(Transform obj);

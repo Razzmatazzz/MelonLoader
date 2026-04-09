@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace MelonLoader
@@ -64,11 +64,11 @@ namespace MelonLoader
 
                 // Parse Argument
                 string cmdArg = null;
-                if (noPrefixCmd.Contains("="))
+                int equalsPos = noPrefixCmd.IndexOf('=');
+                if (equalsPos > -1)
                 {
-                    string[] split = noPrefixCmd.Split('=');
-                    noPrefixCmd = split[0];
-                    cmdArg = split[1];
+                    cmdArg = noPrefixCmd.Substring(equalsPos + 1);
+                    noPrefixCmd = noPrefixCmd.Substring(0, equalsPos);
                 }
 
                 if ((string.IsNullOrEmpty(cmdArg)

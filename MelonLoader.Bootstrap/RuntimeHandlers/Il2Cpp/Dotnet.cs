@@ -18,10 +18,44 @@ internal static partial class Dotnet
         StringMarshalling.Utf8;
 #endif
 
+    private static nint _module;
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = hostfxrCharSet)]
+    private delegate int hostfxr_initialize_for_runtime_config_Fn(string runtimeConfigPath, nint parameters, ref nint hostContextHandle);
+    private static hostfxr_initialize_for_runtime_config_Fn? hostfxr_initialize_for_runtime_config;
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate int hostfxr_get_runtime_delegate_Fn(nint context, HostfxrDelegateType type, ref LoadAssemblyAndGetFunctionPointerFn? del);
+    private static hostfxr_get_runtime_delegate_Fn? hostfxr_get_runtime_delegate;
+
     public static bool LoadHostfxr()
     {
-        var path = GetHostfxrPath();
-        return path != null && NativeLibrary.TryLoad(path, out _);
+        var path = LoaderConfig.Current.Loader.HostFXRPathOverride;
+
+        if (string.IsNullOrEmpty(path)
+            || string.IsNullOrWhiteSpace(path))
+            path = GetHostfxrPath();
+
+        if (string.IsNullOrEmpty(path)
+            || string.IsNullOrWhiteSpace(path))
+            return false;
+
+        MelonDebug.Log($"HostFXR Path: {path}");
+
+        if (!NativeLibrary.TryLoad(path, out _module))
+            return false;
+
+        nint hostfxr_initialize_for_runtime_config_ptr = NativeLibrary.GetExport(_module, nameof(hostfxr_initialize_for_runtime_config));
+        if (hostfxr_initialize_for_runtime_config_ptr == nint.Zero)
+            return false;
+        hostfxr_initialize_for_runtime_config = Marshal.GetDelegateForFunctionPointer<hostfxr_initialize_for_runtime_config_Fn>(hostfxr_initialize_for_runtime_config_ptr);
+
+        nint hostfxr_get_runtime_delegate_ptr = NativeLibrary.GetExport(_module, nameof(hostfxr_get_runtime_delegate));
+        if (hostfxr_get_runtime_delegate_ptr == nint.Zero)
+            return false;
+        hostfxr_get_runtime_delegate = Marshal.GetDelegateForFunctionPointer<hostfxr_get_runtime_delegate_Fn>(hostfxr_get_runtime_delegate_ptr);
+
+        return true;
     }
 
     private static string? GetHostfxrPath()
@@ -34,6 +68,12 @@ internal static partial class Dotnet
 
     public static bool InitializeForRuntimeConfig(string runtimeConfigPath, out nint context)
     {
+        if (hostfxr_initialize_for_runtime_config == null)
+        {
+            context = 0;
+            return false;
+        }
+
         nint ctx = 0;
         ConsoleHandler.NullHandles(); // Prevent it from logging its own stuff
         var status = hostfxr_initialize_for_runtime_config(runtimeConfigPath, 0, ref ctx);
@@ -51,6 +91,9 @@ internal static partial class Dotnet
 
     public static TDelegate? LoadAssemblyAndGetFunctionUco<TDelegate>(nint context, string assemblyPath, string typeName, string methodName) where TDelegate : Delegate
     {
+        if (hostfxr_get_runtime_delegate == null)
+            return null;
+
         LoadAssemblyAndGetFunctionPointerFn? loadAssemblyAndGetFunctionPointer = null;
         hostfxr_get_runtime_delegate(context, HostfxrDelegateType.HdtLoadAssemblyAndGetFunctionPointer, ref loadAssemblyAndGetFunctionPointer);
         if (loadAssemblyAndGetFunctionPointer == null)
@@ -66,12 +109,6 @@ internal static partial class Dotnet
 
     [DllImport("*", CharSet = hostfxrCharSet)]
     private static extern int get_hostfxr_path(StringBuilder buffer, ref nint bufferSize, nint parameters);
-
-    [LibraryImport("hostfxr", StringMarshalling = hostfxrStringMarsh)]
-    private static partial int hostfxr_initialize_for_runtime_config(string runtimeConfigPath, nint parameters, ref nint hostContextHandle);
-
-    [LibraryImport("hostfxr")]
-    private static partial int hostfxr_get_runtime_delegate(nint context, HostfxrDelegateType type, ref LoadAssemblyAndGetFunctionPointerFn? del);
 
     private enum HostfxrDelegateType
     {

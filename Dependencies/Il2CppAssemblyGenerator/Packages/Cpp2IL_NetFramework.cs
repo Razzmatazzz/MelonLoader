@@ -28,8 +28,13 @@ namespace MelonLoader.Il2CppAssemblyGenerator.Packages
         }
 
         internal override bool ShouldSetup()
-            => string.IsNullOrEmpty(Config.Values.DumperVersion)
-            || !Config.Values.DumperVersion.Equals(Version);
+        {
+            if (!File.Exists(ExeFilePath))
+                return true;
+
+            return string.IsNullOrEmpty(Config.Values.DumperVersion)
+                || !Config.Values.DumperVersion.Equals(Version);
+        }
 
         internal override void Cleanup() { }
 

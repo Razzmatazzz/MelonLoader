@@ -1,21 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFrameworks>net35;net6</TargetFrameworks>
+        <TargetFrameworks>$(MonoTarget);$(DotNetTarget)</TargetFrameworks>
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
         <OutputPath>$(MLOutDir)/MelonLoader</OutputPath>
         <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <EnableDynamicLoading>true</EnableDynamicLoading>
         <DebugType>portable</DebugType>
         <IsPackable>true</IsPackable>
         <PackageId>LavaGang.MelonLoader</PackageId>
         <PackageTags>modding unity</PackageTags>
-        <RepositoryUrl>https://github.com/LavaGang/MelonLoader</RepositoryUrl>
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-        <RepositoryType>git</RepositoryType>
-        <PackageProjectUrl>https://github.com/LavaGang/MelonLoader</PackageProjectUrl>
-        <Description>The World's First Universal Mod Loader for Unity Games compatible with both Il2Cpp and Mono.</Description>
+        <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
     </PropertyGroup>
     <ItemDefinitionGroup>
         <PackageReference>
@@ -27,41 +23,50 @@
         <InternalsVisibleTo Include="Il2CppAssemblyGenerator" />
         <InternalsVisibleTo Include="Il2CppUnityTls" />
         <InternalsVisibleTo Include="Il2Cpp" />
+        <InternalsVisibleTo Include="Mono" />
         <InternalsVisibleTo Include="MelonStartScreen" />
         <InternalsVisibleTo Include="EOS" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="AssetRipper.Primitives" Version="3.1.4" />
-        <PackageReference Include="AssetsTools.NET" Version="3.0.0-preview3" />
-        <PackageReference Include="HarmonyX" Version="2.10.2" />
-        <PackageReference Include="MonoMod" Version="22.7.31.1" />
-        <PackageReference Include="MonoMod.RuntimeDetour" Version="22.7.31.1" />
-        <PackageReference Include="MonoMod.Utils" Version="22.7.31.1" />
-        <PackageReference Include="Samboy063.Tomlet" Version="5.4.0" />
+        <PackageReference Include="AssetRipper.Primitives" Version="$(AssetRipperVersion)" />
+        <PackageReference Include="AssetsTools.NET" Version="$(AssetToolsVersion)" />
+        <PackageReference Include="HarmonyX" Version="$(HarmonyXVersion)" />
+        <PackageReference Include="Mono.Cecil" Version="$(MonoCecilVersion)" />
+        <PackageReference Include="MonoMod" Version="$(MonoModVersion)" />
+        <PackageReference Include="MonoMod.RuntimeDetour" Version="$(MonoModVersion)" />
+        <PackageReference Include="MonoMod.Utils" Version="$(MonoModVersion)" />
+        <PackageReference Include="Samboy063.Tomlet" Version="$(TomletVersion)" />
+        <PackageReference Include="AsmResolver.DotNet" Version="$(AsmResolverVersion)" />
+		
         <PackageReference Include="bHapticsLib" Version="1.0.6" />
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     </ItemGroup>
-    <ItemGroup Condition="'$(TargetFramework)' == 'net35'">
-        <PackageReference Include="Mono.Cecil" Version="0.10.4" />
-    </ItemGroup>
-    <ItemGroup Condition="'$(TargetFramework)' == 'net6'">
-        <PackageReference Include="AsmResolver.DotNet" Version="6.0.0-beta.3" />
+    <ItemGroup Condition="'$(TargetFramework)' == '$(DotNetTarget)'">
+        <PackageReference Include="IndexRange" Version="1.1.0" />
+        <PackageReference Include="Microsoft.Bcl" Version="1.1.10" />
         <PackageReference Include="Microsoft.Diagnostics.Runtime" Version="3.1.512801" />
-        <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.1" />
+        <PackageReference Include="Microsoft.Diagnostics.NETCore.Client" Version="0.2.661903" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.3" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.3" />
+        <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.3" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.3" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.3" />
+        <PackageReference Include="Microsoft.Extensions.Primitives" Version="10.0.3" />
+        <PackageReference Include="System.Configuration.ConfigurationManager" Version="10.0.3" />
         <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
-        <PackageReference Include="System.Security.Permissions" Version="8.0.0" />
-        <PackageReference Include="Iced" Version="1.21.0" />
+        <PackageReference Include="System.Security.Permissions" Version="10.0.3" />
+		
+        <PackageReference Include="Iced" Version="$(IcedVersion)" />
         <PackageReference Include="Il2CppInterop.Common" Version="$(Il2CppInteropVersion)" />
         <PackageReference Include="Il2CppInterop.Runtime" Version="$(Il2CppInteropVersion)" />
         <PackageReference Include="Il2CppInterop.Generator" Version="$(Il2CppInteropVersion)" />
         <PackageReference Include="Il2CppInterop.HarmonySupport" Version="$(Il2CppInteropVersion)" />
-        <PackageReference Include="Mono.Cecil" Version="0.11.6" />
     </ItemGroup>
     <ItemGroup>
         <EmbeddedResource Include="Resources\classdata.tpk" />
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="$(SolutionDir)/MelonLoader.Bootstrap/Logging/ColorRGB.cs" Link="Utils\ColorRGB.cs" />
+        <Compile Include="$(SolutionDir)/MelonLoader.Bootstrap/Logging/ColorARGB.cs" Link="Utils\ColorARGB.cs" />
         <Compile Include="$(SolutionDir)/MelonLoader.Bootstrap/SharedDelegates.cs" Link="BootstrapUtils/SharedDelegates.cs" />
     </ItemGroup>
 </Project>

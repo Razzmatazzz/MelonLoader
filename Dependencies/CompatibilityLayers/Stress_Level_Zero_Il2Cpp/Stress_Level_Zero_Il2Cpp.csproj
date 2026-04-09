@@ -1,15 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
+        <TargetFramework>$(DotNetTarget)</TargetFramework>
         <RootNamespace>MelonLoader.CompatibilityLayers</RootNamespace>
-        <TargetFramework>net472</TargetFramework>
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
         <OutputPath>$(MLOutDir)/MelonLoader/Dependencies/CompatibilityLayers</OutputPath>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <DebugType>None</DebugType>
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\..\MelonLoader\MelonLoader.csproj">
+        <ProjectReference Include="$(SolutionDir)\MelonLoader\MelonLoader.csproj">
             <Private>false</Private>
             <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
         </ProjectReference>

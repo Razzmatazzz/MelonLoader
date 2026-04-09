@@ -22,7 +22,7 @@ namespace MelonLoader.Il2CppAssemblyGenerator.Packages
                 Version = RemoteAPI.Info.ForceDumperVersion;
 #endif
             if (string.IsNullOrEmpty(Version) || Version.Equals("0.0.0.0"))
-                Version = $"2022.1.0-pre-release.19";
+                Version = $"2022.1.0-pre-release.21";
             VersionSem = SemVersion.Parse(Version);
 
             Name = nameof(Cpp2IL);
@@ -48,9 +48,14 @@ namespace MelonLoader.Il2CppAssemblyGenerator.Packages
 #endif
         }
 
-        internal override bool ShouldSetup() 
-            => string.IsNullOrEmpty(Config.Values.DumperVersion) 
-            || !Config.Values.DumperVersion.Equals(Version);
+        internal override bool ShouldSetup()
+        {
+            if (!File.Exists(ExeFilePath))
+                return true;
+
+            return string.IsNullOrEmpty(Config.Values.DumperVersion)
+                || !Config.Values.DumperVersion.Equals(Version);
+        }
 
         internal override void Cleanup() { }
 

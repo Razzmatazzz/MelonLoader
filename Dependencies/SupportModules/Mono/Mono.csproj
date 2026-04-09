@@ -1,10 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
+        <TargetFramework>$(MonoTarget)</TargetFramework>
         <RootNamespace>MelonLoader.Support</RootNamespace>
-        <TargetFramework>net35</TargetFramework>
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
         <OutputPath>$(MLOutDir)/MelonLoader/Dependencies/SupportModules</OutputPath>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <DebugType>portable</DebugType>
     </PropertyGroup>
     <ItemGroup>
@@ -18,7 +17,8 @@
         <Compile Include="..\UnityMappers.cs" Link="UnityMappers.cs" />
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="..\..\..\MelonLoader\MelonLoader.csproj" Private="false" />
-        <PackageReference Include="Samboy063.Tomlet" Version="5.4.0" ExcludeAssets="Runtime" />
+        <ProjectReference Include="$(SolutionDir)\MelonLoader\MelonLoader.csproj" Private="false" />
+        <PackageReference Include="Samboy063.Tomlet" Version="$(TomletVersion)" ExcludeAssets="Runtime" />
+        <PackageReference Include="HarmonyX" Version="$(HarmonyXVersion)" ExcludeAssets="Runtime" />
     </ItemGroup>
 </Project>

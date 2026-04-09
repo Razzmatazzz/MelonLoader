@@ -13,6 +13,7 @@ namespace MelonLoader.Bootstrap;
 internal static class Exports
 {
 #if WINDOWS
+
     [UnmanagedCallersOnly(EntryPoint = "DllMain")]
     [RequiresDynamicCode("Calls InitConfig")]
     public static bool DllMain(nint hModule, uint ulReasonForCall, nint lpReserved)
@@ -25,6 +26,7 @@ internal static class Exports
 
         return true;
     }
+
 #endif
 
 #if LINUX || OSX
@@ -51,7 +53,7 @@ internal static class Exports
 #else
         "LD_LIBRARY_PATH";
 #endif
-    
+
     // It's not guaranteed that the first call is the one we want: it's possible someone was wrapping
     // the execution from another. We need to at least have good confidence that we're dealing with a
     // Unity game. The following heuristics checks the presence of a gameName_Data or Data folder which
@@ -111,7 +113,7 @@ internal static class Exports
         LibcNative.Setenv(LdPreloadEnvName, newLdPreload, true);
         Environment.SetEnvironmentVariable(LdPreloadEnvName, newLdPreload);
     }
-    
+
 #if OSX
     [UnmanagedCallersOnly(EntryPoint = "Init", CallConvs = [typeof(CallConvCdecl)])]
     [RequiresDynamicCode("Calls InitConfig")]
@@ -131,13 +133,13 @@ internal static class Exports
         Core.Init(handle);
     }
 #endif
-    
+
 #if LINUX
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private unsafe delegate int MainFn(int argc, char** argv, char** envp);
 
     private static MainFn? _originalMain;
-    
+
     // The Linux entrypoint involves exposing our version of __libc_start_main as it's the only
     // symbol we have a guarantee will be called no matter the Unity version. Helpfully for us,
     // the function receives the main function as argument so we can capture it and pass our own
@@ -204,7 +206,7 @@ internal static class Exports
     }
 
     [UnmanagedCallersOnly(EntryPoint = "LogMsg")]
-    public static unsafe void LogMsg(ColorARGB* msgColor, char* msg, int msgLength, ColorARGB* sectionColor, char* section, int sectionLength)
+    public static unsafe void LogMsg(ColorARGB* msgColor, char* msg, int msgLength, ColorARGB* sectionColor, char* section, int sectionLength, char* strippedMsg, int strippedMsgLength)
     {
         if (msgColor == null || msg == null)
         {
@@ -213,14 +215,15 @@ internal static class Exports
         }
 
         var mMsg = new ReadOnlySpan<char>(msg, msgLength);
+        var mStrippedMsg = new ReadOnlySpan<char>(strippedMsg, strippedMsgLength);
 
         if (sectionColor == null || section == null)
         {
-            MelonLogger.Log(*msgColor, mMsg);
+            MelonLogger.Log(*msgColor, mMsg, mStrippedMsg);
             return;
         }
 
-        MelonLogger.Log(*msgColor, mMsg, *sectionColor, new(section, sectionLength));
+        MelonLogger.Log(*msgColor, mMsg, *sectionColor, new(section, sectionLength), mStrippedMsg);
     }
 
     [UnmanagedCallersOnly(EntryPoint = "LogError")]

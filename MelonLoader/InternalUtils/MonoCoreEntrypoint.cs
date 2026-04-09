@@ -38,7 +38,7 @@ public static class MonoCoreEntrypoint
                     BindingFlags.NonPublic | BindingFlags.Static);
                 Core.HarmonyInstance.Patch(_monoCoreStartHookMethod,
                     prefix: new HarmonyMethod(typeof(MonoCoreEntrypoint), nameof(Entrypoint)));
-                MelonLogger.Msg($"Hooked into {_monoCoreStartHookMethod.FullDescription()}");
+                MelonDebug.Msg($"Hooked into {_monoCoreStartHookMethod.FullDescription()}");
                 return;
             }
 
@@ -49,7 +49,7 @@ public static class MonoCoreEntrypoint
                     displayType.GetMethod("RecreateDisplayList", BindingFlags.NonPublic | BindingFlags.Static);
                 Core.HarmonyInstance.Patch(_monoCoreStartHookMethod,
                     postfix: new HarmonyMethod(typeof(MonoCoreEntrypoint), nameof(Entrypoint)));
-                MelonLogger.Msg($"Hooked into {_monoCoreStartHookMethod.FullDescription()}");
+                MelonDebug.Msg($"Hooked into {_monoCoreStartHookMethod.FullDescription()}");
                 return;
             }
 
@@ -72,7 +72,7 @@ public static class MonoCoreEntrypoint
         _monoCoreStartEntrypointAlreadyCalled = true;
         try
         {
-            Core.HarmonyInstance.Unpatch(_monoCoreStartHookMethod, HarmonyPatchType.All, BuildInfo.Name);
+            Core.HarmonyInstance.Unpatch(_monoCoreStartHookMethod, HarmonyPatchType.All, Properties.BuildInfo.Name);
         }
         catch (Exception e)
         {

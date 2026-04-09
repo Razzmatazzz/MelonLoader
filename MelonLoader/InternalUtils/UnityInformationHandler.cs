@@ -31,8 +31,7 @@ namespace MelonLoader.InternalUtils
             }
             catch (Exception ex)
             {
-                if (MelonDebug.IsEnabled())
-                    MelonLogger.Error(ex);
+                MelonDebug.Error(ex.ToString());
                 returnval = UnityVersion.MinVersion;
             }
             return returnval;
@@ -45,9 +44,16 @@ namespace MelonLoader.InternalUtils
             if (!string.IsNullOrEmpty(LoaderConfig.Current.UnityEngine.VersionOverride))
                 EngineVersion = TryParse(LoaderConfig.Current.UnityEngine.VersionOverride);
 
-            AssetsManager assetsManager = new AssetsManager();
-            ReadGameInfo(assetsManager, gameDataPath);
-            assetsManager.UnloadAll();
+            try
+            {
+                AssetsManager assetsManager = new AssetsManager();
+                ReadGameInfo(assetsManager, gameDataPath);
+                assetsManager.UnloadAll();
+            }
+            catch (Exception ex)
+            {
+                MelonDebug.Error(ex.ToString());
+            }
 
             if (string.IsNullOrEmpty(GameDeveloper)
                 || string.IsNullOrEmpty(GameName))
@@ -130,8 +136,7 @@ namespace MelonLoader.InternalUtils
             }
             catch(Exception ex)
             {
-                if (MelonDebug.IsEnabled())
-                    MelonLogger.Error(ex);
+                MelonDebug.Error(ex.ToString());
             }
             if (instance != null)
                 instance.file.Close();
@@ -158,8 +163,7 @@ namespace MelonLoader.InternalUtils
             }
             catch (Exception ex)
             {
-                if (MelonDebug.IsEnabled())
-                    MelonLogger.Error(ex);
+                MelonDebug.Error(ex.ToString());
             }
         }
 
@@ -183,8 +187,7 @@ namespace MelonLoader.InternalUtils
             }
             catch (Exception ex)
             {
-                if (MelonDebug.IsEnabled())
-                    MelonLogger.Error(ex);
+                MelonDebug.Error(ex.ToString());
             }
 
             try
@@ -195,8 +198,7 @@ namespace MelonLoader.InternalUtils
             }
             catch (Exception ex)
             {
-                if (MelonDebug.IsEnabled())
-                    MelonLogger.Error(ex);
+                MelonDebug.Error(ex.ToString());
             }
 
             return UnityVersion.MinVersion;

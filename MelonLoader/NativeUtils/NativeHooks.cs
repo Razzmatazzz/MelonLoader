@@ -1,22 +1,29 @@
-﻿using MelonLoader.InternalUtils;
+﻿#if BOOTSTRAP
+#pragma warning disable CS8618
+#else
+using MelonLoader.InternalUtils;
 using System;
-using System.CodeDom;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
+#endif
 
 namespace MelonLoader.NativeUtils
 {
     public class NativeHook<T> where T : Delegate
     {
         #region Private Values
+
         private static readonly List<Delegate> _gcProtect = new();
-        
-        private IntPtr _targetHandle;
-        private IntPtr _detourHandle;
-        private IntPtr _trampolineHandle;
-        private T _trampoline;
+
+        #endregion
+
+        #region Internal Values
+
+        internal IntPtr _targetHandle;
+        internal IntPtr _detourHandle;
+        internal IntPtr _trampolineHandle;
+        internal T _trampoline;
+
         #endregion
 
         #region Public Properties
@@ -103,19 +110,11 @@ namespace MelonLoader.NativeUtils
             if (IsHooked)
                 return;
 
-            if (_targetHandle == IntPtr.Zero)
-                throw new NullReferenceException("The NativeHook's target has not been set!");
-
             if (_detourHandle == IntPtr.Zero)
                 throw new NullReferenceException("The NativeHook's detour has not been set!");
 
-            IntPtr trampoline = _targetHandle;
-            BootstrapInterop.NativeHookAttach((IntPtr)(&trampoline), _detourHandle);
-            _trampolineHandle = trampoline;
-            
-            _trampoline = (T)Marshal.GetDelegateForFunctionPointer(_trampolineHandle, typeof(T));
+            HookAttach();
             _gcProtect.Add(_trampoline);
-
             IsHooked = true;
         }
 
@@ -124,16 +123,34 @@ namespace MelonLoader.NativeUtils
             if (!IsHooked) 
                 return;
 
+            HookDetach();
+            IsHooked = false;
+            _gcProtect.Remove(_trampoline);
+        }
+
+        internal virtual unsafe void HookAttach()
+        {
+#if !BOOTSTRAP
             if (_targetHandle == IntPtr.Zero)
                 throw new NullReferenceException("The NativeHook's target has not been set!");
 
+            IntPtr trampoline = _targetHandle;
+            BootstrapInterop.NativeHookAttach((IntPtr)(&trampoline), _detourHandle);
+
+            _trampolineHandle = trampoline;
+            _trampoline = (T)Marshal.GetDelegateForFunctionPointer(_trampolineHandle, typeof(T));
+#endif
+        }
+
+        internal virtual unsafe void HookDetach()
+        {
+#if !BOOTSTRAP
             IntPtr original = _targetHandle;
             BootstrapInterop.NativeHookDetach((IntPtr)(&original), _detourHandle);
 
-            IsHooked= false;
-            _gcProtect.Remove(_trampoline);
             _trampoline = null;
             _trampolineHandle = IntPtr.Zero;
+#endif
         }
     }
 }

@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net6</TargetFramework>
+        <TargetFramework>$(DotNetTarget)</TargetFramework>
         <RootNamespace>UnityEngine</RootNamespace>
         <OutputPath>$(MLOutDir)/MelonLoader</OutputPath>
         <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\MelonLoader\MelonLoader.csproj" Private="false" />
+        <ProjectReference Include="$(SolutionDir)\MelonLoader\MelonLoader.csproj" Private="false" />
         <PackageReference Include="Il2CppInterop.Runtime" Version="$(Il2CppInteropVersion)" Private="false" />
         <PackageReference Include="Il2CppInterop.ReferenceLibs" Version="1.0.0" Private="false" />
     </ItemGroup>

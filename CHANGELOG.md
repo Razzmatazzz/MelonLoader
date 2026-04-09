@@ -1,5 +1,6 @@
 | Versions: |
 | - |
+| [v0.7.2](#v072) |
 | [v0.7.1](#v071) |
 | [v0.7.0](#v070) |
 | [v0.6.6](#v066) |
@@ -37,6 +38,68 @@
 | [v0.0.3](#v003) |
 | [v0.0.2](#v002) |
 | [v0.0.1](#v001) |
+
+---
+
+### v0.7.2
+
+1. Removed Unneeded AsmResolverFix
+2. Fixed an issue with Platform Specification being incorrect on Platforms other than Windows
+3. Fixed Incorrect BuildInfo Values
+4. Implemented Backwards Compatibility for MelonLoader.BuildInfo to use MelonLoader.Properties.BuildInfo
+5. Fixed ColorARGB File Name to match the Class
+6. Fixed an issue with capturing stdout / stderr when capture player logs is disabled   (Credits to [aldelaro5](https://github.com/aldelaro5) :D)
+7. Added "." as a starting exclusion for Melon Folders
+8. Implemented Exception Logging for Mono Invokes   (Credits to [slxdy](https://github.com/slxdy) :D)
+9. Reimplemented Il2CppInteropFixes
+10. Removed broken ClassInjector.SystemTypeFromIl2CppType Il2CppInterop fix
+11. Fixed an issue with Melon Attribute checks not gracefully failing when an Exception is Thrown
+12. Added AsmResolver.DotNet for Mono and MonoBleedingEdge Games
+13. Fixed an issue with MelonUtils.IsGameIl2Cpp sometimes returning incorrect values
+14. Reimplemented "manifest.json" Requirement for Recursive Melon Subfolder scanning
+15. Implemented Config Options for Subfolder Loading Customization
+16. Exposed "MelonFolderHandler" methods for Custom Melon Folder Exclusion
+17. Fixed an issue with empty strings in "PATH" Environment Variable causing crashes   (Credits to [Squaduck](https://github.com/Squaduck) :D)
+18. Fixed an issue with exposed Melon Folder Exclusion API not working correctly for Plugins
+19. Fixed an issue with Melon Subfolder Parent Context checks using an incorrect ScanType
+20. Implemented MelonInfoAttribute.SystemType Validation to prevent infinite loop during Melon Instantiation
+21. Fixed an issue with Infinite Loops from RottenMelon Instantiation calling MelonAssembly.LoadMelonAssembly
+22. Updated Cpp2IL to 2022.1.0-pre-release.21   (Credits to [IkariDevGIT](https://github.com/IkariDevGIT) :D)
+23. Implemented Il2CppInterop GetFieldDefaultValue Fix to allow custom signatures to be added to Il2CppInterop's Class::GetFieldDefaultValue Hook
+24. Allowed exclamation marks in namespaces/types   (Credits to [Emik03](https://github.com/Emik03) :D)
+25. Updated Tomlet to 6.2.0
+26. Updated Pastel to 7.0.1
+27. Updated AssetRipper.Primitives to 3.2.0
+28. Updated Il2CppInterop to 1.5.1
+29. Fixed an issue with Melon Subfolder toggle being inverted
+30. Fixed an issue with Il2CppAssemblyGenerator and File Detection Failures
+31. Fixed an issue with Assembly Verifier throwing an error when loading SharpDX
+32. Fixed an issue with MelonCoroutines attempting to use the Support Module before it is loaded
+33. Fixed an issue with MelonCoroutines started from OnApplicationStart running before other MelonCoroutines in the queue
+34. Fixed an issue with Il2CppInterop's GenericMethod::GetMethod Hook causing crashes on some Unity Versions
+35. Fixed an issue with AsmResolver's Utf8String.Concat using the wrong Length variable for byte array allocation
+36. Fixed an issue with Il2CppInterop's MethodRewriteContext.UnmangleMethodNameWithSignature not fully validating strings before passing them to Utf8String.Concat
+37. Fixed an issue with Mono Initialization not rethrowing exceptions to logging in some rare cases
+38. Implemented experimental MonoBleedingEdge Environment Patches behind Loader config option (Default is OFF)
+39. Fixed an issue with Harmony Auto-Patching for Plugins and Mods not gracefully failing
+40. Implemented Harmony TryPatchAll Extension to MelonUtils
+41. Rewrote Il2Cpp Scene Handling to Patch Internal_SceneLoaded and Internal_SceneUnloaded
+42. Fixed an issue with Windows Bootstrap not being compilable on Linux   (Credits to [Windows10CE](https://github.com/Windows10CE) :D)
+43. Fixed an issue with Compilation Runtime Identifier being overridden by Compiling Operation System
+44. Fixed an issue with MelonLogger.MsgPastel not working as intended   (Credits to [HAHOOS](https://github.com/HAHOOS) :D)
+45. Fixed an issue with Bootstrap's Runtime Symbol Redirect causing weird Span Marshal crashing
+46. Rewrote Bootstrap PLTHooks to utilize NativeHook overrides
+47. Reworked Bootstrap NativeFunc to avoid infinite looping resolves
+48. Improved Handling of Compatibility Layers and Unity Version Parsing
+49. Fixed an issue with Command-Line Parsing sometimes failing   (Credits to [official-notfishvr](https://github.com/official-notfishvr) :D)
+50. Adjusted DotNet handling to initialize more reliably
+51. Implemented DotNet HostFXR Path Override config and launch options --melonloader.hostfxr
+52. Fixed an issue with Logging not validating Section   (Credits to [MrModification](https://github.com/MrModification) :D)
+53. Updated AssetTools.Net to 3.0.4   (Credits to [dommrogers](https://github.com/dommrogers) :D)
+54. Fixed Il2CppInterop RunFinalizer sometimes failing on certain Unity versions   (Credits to [Atmudia](https://github.com/Atmudia) :D)
+55. Fixed compilation issues with MelonStartScreen   (Credits to [official-notfishvr](https://github.com/official-notfishvr) :D)
+56. Fixed an issue with Wine console not resetting the colors after message output   (Credits to [bnfour](https://github.com/bnfour) :D)
+57. Removed broken InstancePatchFix patches   (Credits to [RaptorRush135](https://github.com/RaptorRush135) :D)
 
 ---
 

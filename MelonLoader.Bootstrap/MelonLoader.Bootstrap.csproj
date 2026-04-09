@@ -1,21 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>$(BootstrapTarget)</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PublishAot>true</PublishAot>
         <SelfContained>true</SelfContained>
         <PublishDir>$(MLOutDir)</PublishDir>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <NoWarn>LNK4099</NoWarn>
-        <InvariantGlobalization>true</InvariantGlobalization>
+        <DefineConstants>$(DefineConstants);BOOTSTRAP</DefineConstants>
+
+        <AcceptVSBuildToolsLicense>true</AcceptVSBuildToolsLicense>
+        <XwinArches Condition="'$(XWinArches)' == ''">x86,x86_64</XwinArches>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(RuntimeIdentifier.StartsWith(`linux-`))' == 'true'">
         <ExportsFile>linuxexports.def</ExportsFile>
         <LinkStandardCPlusPlusLibrary>true</LinkStandardCPlusPlusLibrary>
     </PropertyGroup>
+	
     <PropertyGroup Condition="'$(RuntimeIdentifier.StartsWith(`osx-`))' == 'true'">
         <ExportsFile>osxexports.def</ExportsFile>
         <OSXEntryPath>Deps/$(RuntimeIdentifier)/osxentry.o</OSXEntryPath>
@@ -36,7 +38,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="../BaseLibs/NetStandardPatches/*" CopyToOutputDirectory="PreserveNewest" Link="MelonLoader/Dependencies/NetStandardPatches/%(RecursiveDir)%(Filename)%(Extension)" />
+        <None Include="$(SolutionDir)/BaseLibs/NetStandardPatches/*" CopyToOutputDirectory="PreserveNewest" Link="MelonLoader/Dependencies/NetStandardPatches/%(RecursiveDir)%(Filename)%(Extension)" />
+        <None Include="$(SolutionDir)/BaseLibs/MonoBleedingEdgePatches/*" CopyToOutputDirectory="PreserveNewest" Link="MelonLoader/Dependencies/MonoBleedingEdgePatches/%(RecursiveDir)%(Filename)%(Extension)" />
         <None Include="$(SolutionDir)/NOTICE.txt" CopyToOutputDirectory="PreserveNewest" Link="MelonLoader/Documentation/%(Filename)%(Extension)" />
         <None Include="$(SolutionDir)/LICENSE.md" CopyToOutputDirectory="PreserveNewest" Link="MelonLoader/Documentation/%(Filename)%(Extension)" />
         <None Include="$(SolutionDir)/CHANGELOG.md" CopyToOutputDirectory="PreserveNewest" Link="MelonLoader/Documentation/%(Filename)%(Extension)" />
@@ -50,18 +53,19 @@
     </ItemGroup>
 
     <PropertyGroup>
-        <AppHostVersion>9.0.0</AppHostVersion>
         <AppHostPath>$(NuGetPackageRoot)runtime.$(RuntimeIdentifier).microsoft.netcore.dotnetapphost/$(AppHostVersion)/runtimes/$(RuntimeIdentifier)/native/libnethost$(LibExt)</AppHostPath>
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="PublishAotCrossXWin" Version="1.2.0" PrivateAssets="all" />
         <PackageReference Include="Microsoft.NETCore.DotNetAppHost" Version="$(AppHostVersion)" PrivateAssets="All" />
-        <PackageReference Include="Pastel" Version="6.0.1" />
-        <PackageReference Include="Samboy063.Tomlet" Version="6.0.0" />
+        <PackageReference Include="Pastel" Version="$(PastelVersion)" />
+        <PackageReference Include="Samboy063.Tomlet" Version="$(TomletVersion)" />
     </ItemGroup>
 
     <ItemGroup>
         <Compile Include="$(SolutionDir)/MelonLoader/LoaderConfig.cs" />
+        <Compile Include="..\MelonLoader\NativeUtils\NativeHooks.cs" Link="NativeHooks.cs" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(RuntimeIdentifier.StartsWith(`osx-`))' == 'true'">
@@ -79,14 +83,12 @@
          appended. Our entrypoint on linux REQUIRES to expose "__libc_start_main" without any version suffix.
          To workaround this, we can remove the string in the file before linking, but after compile -->
     <Target Name="Replace" BeforeTargets="LinkNative" DependsOnTargets="IlcCompile">
-        <WriteLinesToFile File="$(ExportsFile)"
-                          Lines="$([System.IO.File]::ReadAllText($(ExportsFile)).Replace('V1.0',''))"
-                          Overwrite="true"/>
+        <WriteLinesToFile File="$(ExportsFile)" Lines="$([System.IO.File]::ReadAllText($(ExportsFile)).Replace('V1.0',''))" Overwrite="true" />
     </Target>
 
     <Target Name="PublishAsBuildAfterTarget" AfterTargets="Build" DependsOnTargets="Publish" />
 
     <Target Condition="'$(RuntimeIdentifier.StartsWith(`win-`))' == 'true'" Name="RenameBinary" AfterTargets="Build">
-        <Move SourceFiles="$(PublishDir)/$(TargetName).dll" DestinationFiles="$(PublishDir)/version.dll" />
+        <Move SourceFiles="$(MLOutDir)/$(TargetName).dll" DestinationFiles="$(MLOutDir)/version.dll" />
     </Target>
 </Project>

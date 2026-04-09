@@ -18,30 +18,45 @@ namespace MelonLoader.Support
             Interface = interface_from;
             UnityMappers.RegisterMappers();
 
-            if (IsUnity53OrLower())
+            GetSceneManagerMethods(out MethodInfo sceneLoaded, 
+                out MethodInfo sceneUnloaded);
+            if (sceneLoaded == null)
+            {
+                MelonLogger.Warning("Failed to find Internal_SceneLoaded method");
+                MelonLogger.Warning("Falling back to SupportModule Component Creation");
                 SM_Component.Create();
+            }
             else
-                SceneHandler.Init();
+                SceneHandler.Init(sceneLoaded, sceneUnloaded);
 
             return new SupportModule_To();
         }
 
-        private static bool IsUnity53OrLower()
+        private static void GetSceneManagerMethods(out MethodInfo sceneLoaded,
+            out MethodInfo sceneUnloaded)
         {
+            sceneLoaded = null;
+            sceneUnloaded = null;
+            Type scenemanager = null;
             try
             {
-                Assembly unityengine = Assembly.Load("UnityEngine");
-                if (unityengine == null)
-                    return true;
-                Type scenemanager = unityengine.GetType("UnityEngine.SceneManagement.SceneManager");
+                Assembly unityengine = Assembly.Load("UnityEngine.CoreModule");
+                if (unityengine != null)
+                    scenemanager = unityengine.GetType("UnityEngine.SceneManagement.SceneManager");
+
                 if (scenemanager == null)
-                    return true;
-                EventInfo sceneLoaded = scenemanager.GetEvent("sceneLoaded");
-                if (sceneLoaded == null)
-                    return true;
-                return false;
+                {
+                    unityengine = Assembly.Load("UnityEngine");
+                    if (unityengine != null)
+                        scenemanager = unityengine.GetType("UnityEngine.SceneManagement.SceneManager");
+                }
             }
-            catch { return true; }
+            catch { scenemanager = null; }
+            if (scenemanager == null)
+                return;
+
+            sceneLoaded = scenemanager.GetMethod("Internal_SceneLoaded", BindingFlags.NonPublic | BindingFlags.Static);
+            sceneUnloaded = scenemanager.GetMethod("Internal_SceneUnloaded", BindingFlags.NonPublic | BindingFlags.Static);
         }
     }
 }

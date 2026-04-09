@@ -34,11 +34,6 @@ namespace MelonLoader
 
             return true;
         }
-        private void HarmonyInit()
-        {
-            if (!MelonAssembly.HarmonyDontPatchAll)
-                HarmonyInstance.PatchAll(MelonAssembly.Assembly);
-        }
 
         protected private override void RegisterCallbacks()
         {

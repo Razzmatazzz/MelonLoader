@@ -42,7 +42,7 @@ namespace MelonLoader.Fixes
                         catch (Exception ex) { MelonLogger.Warning($"Exception Patching Thread Set Method {propertyInfo.Name}: {ex}"); }
                 }
             }
-            catch (Exception ex) { MelonLogger.Warning($"ForcedCultureInfo Exception: {ex}"); }
+            catch (Exception ex) { MelonLogger.Warning(ex); }
 		}
 
 		private static bool GetMethod(ref CultureInfo __result)

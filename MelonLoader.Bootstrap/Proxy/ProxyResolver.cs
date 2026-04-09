@@ -1,4 +1,5 @@
 ﻿#if WINDOWS
+using MelonLoader.Bootstrap.Utils;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -78,8 +79,8 @@ public static partial class ProxyResolver
 
         export = export[preTag.Length..];
 
-        if (!NativeLibrary.TryGetExport(ogHandle, export, out var theirExport)
-            || !NativeLibrary.TryGetExport(ourHandle, export, out var ourExport))
+        if (!NativeFunc.TryGetExport(ogHandle, export, out var theirExport)
+            || !NativeFunc.TryGetExport(ourHandle, export, out var ourExport))
         {
             //Console.WriteLine($"Proxy export not found: '{export}'");
             return;

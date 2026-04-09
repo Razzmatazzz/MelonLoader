@@ -5,9 +5,20 @@ namespace MelonLoader.Bootstrap.Utils;
 
 internal static class NativeFunc
 {
+    public static bool TryGetExport(nint hModule, string name, out nint export)
+    {
+        export = ModuleSymbolRedirect.GetSymbol(hModule, name);
+        if (export == IntPtr.Zero)
+            return false;
+        return true;
+    }
+
     public static T? GetExport<T>(nint hModule, string name) where T : Delegate
     {
-        return !NativeLibrary.TryGetExport(hModule, name, out var export) ? null : Marshal.GetDelegateForFunctionPointer<T>(export);
+        nint exportPtr = ModuleSymbolRedirect.GetSymbol(hModule, name);
+        if (exportPtr == IntPtr.Zero)
+            return null;
+        return Marshal.GetDelegateForFunctionPointer<T>(exportPtr);
     }
 
     public static bool GetExport<T>(nint hModule, string name, [NotNullWhen(true)] out T? func) where T : Delegate

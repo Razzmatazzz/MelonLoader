@@ -7,7 +7,7 @@ internal class InternalLogger(ColorARGB sectionColor, string sectionName)
 {
     public void Msg(string msg)
     {
-        MelonLogger.Log(ColorARGB.LightGray, msg, sectionColor, sectionName);
+        MelonLogger.Log(ColorARGB.LightGray, msg, sectionColor, sectionName, msg);
     }
 
     public void Error(string msg)

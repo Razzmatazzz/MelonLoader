@@ -114,7 +114,7 @@ internal static class MelonLogger
         if (LoaderConfig.Current.Loader.CapturePlayerLogs)
         {
 #if LINUX || OSX
-            LinuxPlayerLogsMirroring.SetupPlayerLogMirroring();
+            UnixPlayerLogsMirroring.SetupPlayerLogMirroring();
 #endif
 #if WINDOWS
             WindowsPlayerLogsMirroring.SetupPlayerLogMirroring();
@@ -137,11 +137,11 @@ internal static class MelonLogger
         }
     }
 
-    public static void Log(ColorARGB msgColor, ReadOnlySpan<char> msg)
+    public static void Log(ColorARGB msgColor, ReadOnlySpan<char> msg, ReadOnlySpan<char> strippedMessage)
     {
         var time = DateTime.Now.ToString(timeFormat);
 
-        LogToFiles($"[{time}] {msg}");
+        LogToFiles($"[{time}] {strippedMessage}");
 
         if (!ConsoleHandler.IsOpen)
             return;
@@ -159,6 +159,7 @@ internal static class MelonLogger
 
             Console.ForegroundColor = ConsoleHandler.GetClosestConsoleColor(msgColor);
             Console.Out.WriteLine(msg);
+            Console.ResetColor();
 
             return;
         }
@@ -166,11 +167,13 @@ internal static class MelonLogger
         Console.WriteLine($"[{time.Pastel(timeColor)}] {msg.Pastel(msgColor)}");
     }
 
-    public static void Log(ColorARGB msgColor, ReadOnlySpan<char> msg, ColorARGB sectionColor, ReadOnlySpan<char> sectionName)
+    // HACK: There's definitely a better way to implement MsgPastel, but for now this will do. This required the strippedMessage parameter to be provided which isn't really optimal
+    public static void Log(ColorARGB msgColor, ReadOnlySpan<char> msg, ColorARGB sectionColor, ReadOnlySpan<char> sectionName, ReadOnlySpan<char> strippedMessage)
     {
+        var sectionPart = string.IsNullOrEmpty(sectionName.ToString()) ? "" : $"[{sectionName}] ";
         var time = DateTime.Now.ToString(timeFormat);
 
-        LogToFiles($"[{time}] [{sectionName}] {msg}");
+        LogToFiles($"[{time}] {sectionPart}{strippedMessage}");
 
         if (!ConsoleHandler.IsOpen)
             return;
@@ -183,22 +186,31 @@ internal static class MelonLogger
             Console.ForegroundColor = legacyTimeColor;
             Console.Write(time);
 
-            Console.ResetColor();
-            Console.Write("] [");
-
-            Console.ForegroundColor = ConsoleHandler.GetClosestConsoleColor(sectionColor);
-            Console.Out.Write(sectionName);
-
-            Console.ResetColor();
-            Console.Write("] ");
+            if (!sectionName.IsEmpty)
+            {
+                Console.ResetColor();
+                Console.Write("] [");
+                Console.ForegroundColor = ConsoleHandler.GetClosestConsoleColor(sectionColor);
+                Console.Out.Write(sectionName);
+                Console.ResetColor();
+                Console.Write("] ");
+            }
+            else
+            {
+                Console.Write("] ");
+            }
 
             Console.ForegroundColor = ConsoleHandler.GetClosestConsoleColor(msgColor);
             Console.Out.WriteLine(msg);
+            Console.ResetColor();
 
             return;
         }
-
-        Console.WriteLine($"[{time.Pastel(timeColor)}] [{sectionName.Pastel(sectionColor)}] {msg.Pastel(msgColor)}");
+        
+        if (!sectionName.IsEmpty)
+            Console.WriteLine($"[{time.Pastel(timeColor)}] [{sectionName.Pastel(sectionColor)}] {msg.Pastel(msgColor)}");
+        else
+            Console.WriteLine($"[{time.Pastel(timeColor)}] {msg.Pastel(msgColor)}");
     }
 
     public static void LogWarning(ReadOnlySpan<char> msg)
@@ -206,25 +218,28 @@ internal static class MelonLogger
         if (LoaderConfig.Current.Console.HideWarnings)
         {
             var time = DateTime.Now.ToString(timeFormat);
+            
             LogToFiles($"[{time}] {msg}");
 
             return;
         }
 
-        Log(ColorARGB.Yellow, msg);
+        Log(ColorARGB.Yellow, msg, msg);
     }
 
     public static void LogWarning(ReadOnlySpan<char> msg, ReadOnlySpan<char> sectionName)
     {
         if (LoaderConfig.Current.Console.HideWarnings)
         {
+            var sectionPart = string.IsNullOrEmpty(sectionName.ToString()) ? "" : $"[{sectionName}] ";
             var time = DateTime.Now.ToString(timeFormat);
-            LogToFiles($"[{time}] [{sectionName}] {msg}");
+            
+            LogToFiles($"[{time}] {sectionPart}{msg}");
 
             return;
         }
 
-        Log(ColorARGB.Yellow, msg, ColorARGB.Yellow, sectionName);
+        Log(ColorARGB.Yellow, msg, ColorARGB.Yellow, sectionName, msg);
     }
 
     public static void LogError(ReadOnlySpan<char> msg)
@@ -240,6 +255,7 @@ internal static class MelonLogger
         {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"[{time}] {msg}");
+            Console.ResetColor();
 
             return;
         }
@@ -249,9 +265,10 @@ internal static class MelonLogger
 
     public static void LogError(ReadOnlySpan<char> msg, ReadOnlySpan<char> sectionName)
     {
+        var sectionPart = string.IsNullOrEmpty(sectionName.ToString()) ? "" : $"[{sectionName}] ";
         var time = DateTime.Now.ToString(timeFormat);
-
-        LogToFiles($"[{time}] [{sectionName}] {msg}");
+        
+        LogToFiles($"[{time}] {sectionPart}{msg}");
 
         if (!ConsoleHandler.IsOpen)
             return;
@@ -259,12 +276,20 @@ internal static class MelonLogger
         if (WineUtils.IsWine)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"[{time}] [{sectionName}] {msg}");
+            if (!sectionName.IsEmpty)
+                Console.WriteLine($"[{time}] [{sectionName}] {msg}");
+            else
+                Console.WriteLine($"[{time}] {msg}");
+
+            Console.ResetColor();
 
             return;
         }
 
-        Console.WriteLine($"[{time}] [{sectionName}] {msg}".Pastel(ColorARGB.IndianRed));
+        if (!sectionName.IsEmpty)
+            Console.WriteLine($"[{time}] [{sectionName}] {msg}".Pastel(ColorARGB.IndianRed));
+        else
+            Console.WriteLine($"[{time}] {msg}".Pastel(ColorARGB.IndianRed));
     }
 
     public static void LogMelonInfo(ColorARGB nameColor, ReadOnlySpan<char> name, ReadOnlySpan<char> info)
@@ -293,6 +318,7 @@ internal static class MelonLogger
 
             Console.ResetColor();
             Console.Out.WriteLine(info);
+            Console.ResetColor();
 
             return;
         }

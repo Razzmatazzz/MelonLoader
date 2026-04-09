@@ -1,9 +1,8 @@
 ﻿using System;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
-#if SM_Il2Cpp
-using UnityEngine.Events;
-#endif
+using HarmonyLib;
+using System.Reflection;
 
 #pragma warning disable CA2013
 
@@ -20,36 +19,31 @@ namespace MelonLoader.Support
 
         private static Queue<SceneInitEvent> scenesLoaded = new Queue<SceneInitEvent>();
 
-        internal static void Init()
+        internal static void Init(MethodInfo sceneLoaded, MethodInfo sceneUnloaded)
         {
-            try
-            {
-#if SM_Il2Cpp
-                SceneManager.sceneLoaded = (
-                    (ReferenceEquals(SceneManager.sceneLoaded, null))
-                    ? new Action<Scene, LoadSceneMode>(OnSceneLoad)
-                    : Il2CppSystem.Delegate.Combine(SceneManager.sceneLoaded, (UnityAction<Scene, LoadSceneMode>)new Action<Scene, LoadSceneMode>(OnSceneLoad)).Cast<UnityAction<Scene, LoadSceneMode>>()
-                    );
-#else
-                SceneManager.sceneLoaded += OnSceneLoad;
-#endif
-            }
-            catch (Exception ex) { MelonLogger.Error($"SceneManager.sceneLoaded override failed: {ex}"); }
+            if (sceneLoaded != null)
+                try
+                {
+                    MethodInfo onSceneLoadPrefix = typeof(SceneHandler).GetMethod("OnSceneLoadPrefix", BindingFlags.Static | BindingFlags.NonPublic);
+                    Core.HarmonyInstance.Patch(sceneLoaded, new HarmonyMethod(onSceneLoadPrefix));
+                    MelonDebug.Msg($"Hooked into {sceneLoaded.FullDescription()}");
+                }
+                catch (Exception ex) { MelonLogger.Error($"SceneManager.sceneLoaded override failed: {ex}"); }
 
-            try
-            {
-#if SM_Il2Cpp
-                SceneManager.sceneUnloaded = (
-                    (ReferenceEquals(SceneManager.sceneUnloaded, null))
-                    ? new Action<Scene>(OnSceneUnload)
-                    : Il2CppSystem.Delegate.Combine(SceneManager.sceneUnloaded, (UnityAction<Scene>)new Action<Scene>(OnSceneUnload)).Cast<UnityAction<Scene>>()
-                    );
-#else
-                SceneManager.sceneUnloaded += OnSceneUnload;
-#endif
-            }
-            catch (Exception ex) { MelonLogger.Error($"SceneManager.sceneUnloaded override failed: {ex}"); }
+            if (sceneUnloaded != null)
+                try
+                {
+                    MethodInfo onSceneUnloadPrefix = typeof(SceneHandler).GetMethod("OnSceneUnloadPrefix", BindingFlags.Static | BindingFlags.NonPublic);
+                    Core.HarmonyInstance.Patch(sceneUnloaded, new HarmonyMethod(onSceneUnloadPrefix));
+                    MelonDebug.Msg($"Hooked into {sceneUnloaded.FullDescription()}");
+                }
+                catch (Exception ex) { MelonLogger.Error($"SceneManager.sceneUnloaded override failed: {ex}"); }
         }
+
+        private static void OnSceneLoadPrefix(Scene __0, LoadSceneMode __1)
+            => OnSceneLoad(__0, __1);
+        private static void OnSceneUnloadPrefix(Scene __0)
+            => OnSceneUnload(__0);
 
         private static void OnSceneLoad(Scene scene, LoadSceneMode mode)
         {

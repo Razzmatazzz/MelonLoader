@@ -104,7 +104,7 @@ public class ProcessModulesFix
             Core.HarmonyInstance.Patch(AccessTools.PropertyGetter(processType, nameof(Process.MainModule)), AccessTools.Method(processFixType, nameof(MainModule)).ToNewHarmonyMethod());
             Core.HarmonyInstance.Patch(AccessTools.Method(processType, nameof(Process.Refresh)), AccessTools.Method(processFixType, nameof(Refresh)).ToNewHarmonyMethod());
         }
-        catch (Exception ex) { MelonLogger.Warning($"ProcessModulesFix Exception: {ex}"); }
+        catch (Exception ex) { MelonLogger.Error(ex); }
     }
 
     private static bool Refresh()

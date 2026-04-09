@@ -1,11 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
+        <TargetFrameworks>$(MonoTarget);$(DotNetTarget)</TargetFrameworks>
         <RootNamespace>MelonLoader.MelonStartScreen</RootNamespace>
-        <TargetFrameworks>net35;net6</TargetFrameworks>
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
         <OutputPath>$(MLOutDir)/MelonLoader</OutputPath>
         <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <DebugType>portable</DebugType>
     </PropertyGroup>
     <ItemGroup>
@@ -15,9 +14,10 @@
         <EmbeddedResource Include="Resources\Logo_Melon.dat" />
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="..\..\MelonLoader\MelonLoader.csproj" Private="false" />
-        <PackageReference Include="AssetRipper.VersionUtilities" Version="1.5.0" ExcludeAssets="Runtime" />
-        <PackageReference Include="Samboy063.Tomlet" Version="5.4.0">
+        <ProjectReference Include="$(SolutionDir)\MelonLoader\MelonLoader.csproj" Private="false" />
+		<PackageReference Include="AssetRipper.VersionUtilities" Version="1.5.0" ExcludeAssets="Runtime" />
+		<PackageReference Include="AssetRipper.Primitives" Version="3.2.0" ExcludeAssets="Runtime" />
+        <PackageReference Include="Samboy063.Tomlet" Version="$(TomletVersion)">
             <ExcludeAssets>Runtime</ExcludeAssets>
         </PackageReference>
     </ItemGroup>

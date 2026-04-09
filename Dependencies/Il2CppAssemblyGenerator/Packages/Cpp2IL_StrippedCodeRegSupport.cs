@@ -29,6 +29,9 @@ namespace MelonLoader.Il2CppAssemblyGenerator.Packages
 
         internal override bool ShouldSetup()
         {
+            if (!File.Exists(Destination))
+                return true;
+
             if (VersionSem < MinVersion)
                 return false;
 

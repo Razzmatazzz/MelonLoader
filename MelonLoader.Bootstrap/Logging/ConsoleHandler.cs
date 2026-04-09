@@ -14,16 +14,19 @@ internal static class ConsoleHandler
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     private delegate int CloseHandleFn(uint hObject);
     private static readonly CloseHandleFn HookCloseHandleDelegate = HookCloseHandle;
+    private static PltNativeHook<CloseHandleFn>? nativeHook;
 #endif
 
 #if LINUX
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate int FCloseFn(nint stream);
     private static readonly FCloseFn HookFCloseDelegate = HookFClose;
+    private static PltNativeHook<FCloseFn>? nativeHook;
 #endif
 
     public static bool IsOpen { get; private set; }
     public static bool HasOwnWindow { get; private set; }
+
 
     public static void OpenConsole(bool onTop, string? title)
     {
@@ -53,18 +56,16 @@ internal static class ConsoleHandler
         }
 
 #if LINUX
-        PltHook.InstallHooks(
-        [
-            ("fclose", Marshal.GetFunctionPointerForDelegate(HookFCloseDelegate))
-        ]);
+        IntPtr detourPtr = Marshal.GetFunctionPointerForDelegate(HookFCloseDelegate);
+        nativeHook = PltNativeHook<FCloseFn>.RedirectUnityPlayer("fclose", detourPtr);
+        nativeHook?.Attach();
 #endif
 
 #if WINDOWS
-        PltHook.InstallHooks(
-        [
-            ("CloseHandle", Marshal.GetFunctionPointerForDelegate(HookCloseHandleDelegate)),
-        ]);
-        
+        IntPtr detourPtr = Marshal.GetFunctionPointerForDelegate(HookCloseHandleDelegate);
+        nativeHook = PltNativeHook<CloseHandleFn>.RedirectUnityPlayer("CloseHandle", detourPtr);
+        nativeHook?.Attach();
+
         Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true });
         Console.SetError(new StreamWriter(Console.OpenStandardError()) { AutoFlush = true });
         Console.SetIn(new StreamReader(Console.OpenStandardInput()));
@@ -103,7 +104,7 @@ internal static class ConsoleHandler
             MelonDebug.Log($"Prevented the fclose on {(fd == LibcNative.Stdout ? "stdout" : "stderr")}");
             return 0;
         }
-        return LibcNative.FClose(stream);
+        return nativeHook?.Trampoline(stream) ?? 0;
     }
 #endif
 
@@ -116,7 +117,7 @@ internal static class ConsoleHandler
             return 1;
         }
 
-        return WindowsNative.CloseHandle(hObject);
+        return nativeHook?.Trampoline(hObject) ?? 0;
     }
 #endif
 

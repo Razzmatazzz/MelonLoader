@@ -1,42 +1,107 @@
 <Project>
+	<!--
+		Project
+	-->
     <PropertyGroup>
-        <Version>0.7.1</Version>
-        <Il2CppInteropVersion>1.5.0-ci.625</Il2CppInteropVersion>
-
+        <Version>0.7.2</Version>
+        <AppHostVersion>10.0.3</AppHostVersion>
+		
+        <BootstrapTarget>net9</BootstrapTarget>
+		
+        <DotNetTarget>net6</DotNetTarget>
+		
+        <MonoTarget>net35</MonoTarget>
+        <MonoBleedingEdgeTarget>net472</MonoBleedingEdgeTarget>
+		
+        <PortablePdbToMdbTarget>netstandard2.0</PortablePdbToMdbTarget>
+		
         <Authors>Lava Gang</Authors>
         <Company>discord.gg/2Wn3N2P</Company>
-        <Copyright>Copyright (c) 2022 Lava Gang</Copyright>
+        <Copyright>Copyright (c) 2020 - 2025 Lava Gang</Copyright>
+        <Description>The World's First Universal Mod Loader for Unity Games compatible with both Il2Cpp and Mono.</Description>
+
+        <RepositoryUrl>https://github.com/LavaGang/MelonLoader</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
 
         <LangVersion>Latest</LangVersion>
         <IsPackable>false</IsPackable>
         <Configurations>Debug;Release</Configurations>
+		
         <Platforms>x86;x64</Platforms>
+        <RuntimeIdentifiers>win-x86;win-x64;linux-x64;osx-x64</RuntimeIdentifiers>
+		
         <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
+        <CETCompat>false</CETCompat>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <NoWarn>LNK4099</NoWarn>
+        <InvariantGlobalization>true</InvariantGlobalization>
+		
+        <RestoreAdditionalProjectSources>https://nuget.bepinex.dev/v3/index.json</RestoreAdditionalProjectSources>
+    </PropertyGroup>
+	
+	<!--
+		Dependencies
+	-->
+    <PropertyGroup>
+        <IcedVersion>1.21.0</IcedVersion>
+        <TomletVersion>6.2.0</TomletVersion>
+        <PastelVersion>7.0.1</PastelVersion>
+        <MonoModVersion>22.7.31.1</MonoModVersion>
+        <MonoCecilVersion>0.11.6</MonoCecilVersion>
+        <HarmonyXVersion>2.10.2</HarmonyXVersion>
+        <AssetToolsVersion>3.0.4</AssetToolsVersion>
+        <AssetRipperVersion>3.2.0</AssetRipperVersion>
+        <AsmResolverVersion>6.0.0-beta.3</AsmResolverVersion>
+        <Il2CppInteropVersion>1.5.1</Il2CppInteropVersion>
+	</PropertyGroup>
+	
+	<!--
+		Mono Overrides
+	-->
+    <PropertyGroup Condition="'$(TargetFramework)' == '$(MonoTarget)' Or '$(TargetFramework)' == '$(MonoBleedingEdgeTarget)'">
+        <MonoCecilVersion>0.10.4</MonoCecilVersion>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">
-        <RuntimeIdentifiers>linux-x64</RuntimeIdentifiers>
-        <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
-        <PlatformTarget>x64</PlatformTarget>
+	<!--
+		Platform Defaults
+	-->
+	<PropertyGroup Condition="'$(ForceRID)' != ''">
+		<RuntimeIdentifier>$(ForceRID)</RuntimeIdentifier>
+    </PropertyGroup>
+	
+	<PropertyGroup Condition="'$(RuntimeIdentifier)' == '' And '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">
+		<RuntimeIdentifier>win-$(Platform)</RuntimeIdentifier>
+    </PropertyGroup>
+	
+	<PropertyGroup Condition="'$(RuntimeIdentifier)' == '' And '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">
+		<!-- <RuntimeIdentifier>linux-$(Platform)</RuntimeIdentifier> -->
+		<RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+    </PropertyGroup>
+	
+	<PropertyGroup Condition="'$(RuntimeIdentifier)' == '' And '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true'">
+		<!-- <RuntimeIdentifier>osx-$(Platform)</RuntimeIdentifier> -->
+		<RuntimeIdentifier>osx-x64</RuntimeIdentifier>
+    </PropertyGroup>
+	
+	<!--
+		Platform Constants
+	-->
+    <PropertyGroup Condition="'$(RuntimeIdentifier.StartsWith(`linux-`))' == 'true'">
         <DefineConstants>$(DefineConstants);LINUX</DefineConstants>
         <LibPrefix>lib</LibPrefix>
         <LibExt>.a</LibExt>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true'">
+    <PropertyGroup Condition="'$(RuntimeIdentifier.StartsWith(`osx-`))' == 'true'">
         <!-- TODO: split x64 and arm64 -->
-        <RuntimeIdentifiers>osx-x64</RuntimeIdentifiers>
-        <RuntimeIdentifier>osx-x64</RuntimeIdentifier>
-        <PlatformTarget>x64</PlatformTarget>
         <DefineConstants>$(DefineConstants);OSX</DefineConstants>
         <LibPrefix>lib</LibPrefix>
         <LibExt>.a</LibExt>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$([MSBuild]::IsOSUnixLike())' == 'false'">
-        <RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers>
-        <RuntimeIdentifier>win-$(Platform)</RuntimeIdentifier>
+    <PropertyGroup Condition="'$(RuntimeIdentifier.StartsWith(`win-`))' == 'true'">
         <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
         <LibExt>.lib</LibExt>
     </PropertyGroup>
@@ -49,14 +114,14 @@
         <MLOutDir>$(SolutionDir)/Output/$(Configuration)/$(RuntimeIdentifier)</MLOutDir>
     </PropertyGroup>
 
-    <ItemGroup Condition="'$(TargetFramework)' == 'net35'">
+    <ItemGroup Condition="'$(TargetFramework)' == '$(MonoTarget)' Or '$(TargetFramework)' == '$(MonoBleedingEdgeTarget)'">
         <ProjectReference Include="$(SolutionDir)/PortablePdbToMdb/PortablePdbToMdb.csproj"
                           ReferenceOutputAssembly="false"
                           SkipGetTargetFrameworkProperties="true"
                           GlobalPropertiesToRemove="TargetFramework" />
     </ItemGroup>
     <UsingTask TaskName="PortablePdbToMdb"
-               Condition="'$(TargetFramework)' == 'net35'"
+               Condition="'$(TargetFramework)' == '$(MonoTarget)' Or '$(TargetFramework)' == '$(MonoBleedingEdgeTarget)'"
                AssemblyFile="$(SolutionDir)/PortablePdbToMdb/bin/PortablePdbToMdb.dll"
                TaskFactory="TaskHostFactory" />
     <Target Name="SymbolsConvert" Condition="'$(TargetFramework)' == 'net35'" AfterTargets="AfterBuild">

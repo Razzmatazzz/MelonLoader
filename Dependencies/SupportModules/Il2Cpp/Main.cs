@@ -57,20 +57,54 @@ namespace MelonLoader.Support
             }).AddLogger(new InteropLogger())
               .AddHarmonySupport();
 
-            if (!LoaderConfig.Current.UnityEngine.DisableConsoleLogCleaner)
-                ConsoleCleaner();
-
-            SceneHandler.Init();
-
-            MonoEnumeratorWrapper.Register();
-
-            SM_Component.Create();
-
             Interop = new InteropInterface();
             Interface.SetInteropSupportInterface(Interop);
             runtime.Start();
 
+            if (!LoaderConfig.Current.UnityEngine.DisableConsoleLogCleaner)
+                ConsoleCleaner();
+
+            MonoEnumeratorWrapper.Register();
+
+            GetSceneManagerMethods(out MethodInfo sceneLoaded,
+                out MethodInfo sceneUnloaded);
+            if (sceneLoaded == null)
+            {
+                MelonLogger.Warning("Failed to find Internal_SceneLoaded method");
+                MelonLogger.Warning("Falling back to SupportModule Component Creation");
+                SM_Component.Create();
+            }
+            else
+                SceneHandler.Init(sceneLoaded, sceneUnloaded);
+
             return new SupportModule_To();
+        }
+
+        private static void GetSceneManagerMethods(out MethodInfo sceneLoaded,
+            out MethodInfo sceneUnloaded)
+        {
+            sceneLoaded = null;
+            sceneUnloaded = null;
+            Type scenemanager = null;
+            try
+            {
+                Assembly unityengine = Assembly.Load("UnityEngine.CoreModule");
+                if (unityengine != null)
+                    scenemanager = unityengine.GetType("UnityEngine.SceneManagement.SceneManager");
+
+                if (scenemanager == null)
+                {
+                    unityengine = Assembly.Load("UnityEngine");
+                    if (unityengine != null)
+                        scenemanager = unityengine.GetType("UnityEngine.SceneManagement.SceneManager");
+                }
+            }
+            catch { scenemanager = null; }
+            if (scenemanager == null)
+                return;
+
+            sceneLoaded = scenemanager.GetMethod("Internal_SceneLoaded", BindingFlags.Public | BindingFlags.Static);
+            sceneUnloaded = scenemanager.GetMethod("Internal_SceneUnloaded", BindingFlags.Public | BindingFlags.Static);
         }
 
         private static IntPtr MacOsIl2CppInteropLibraryResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
@@ -246,6 +280,7 @@ namespace MelonLoader.Support
                     MelonDebug.Msg(formattedTxt);
                     break;
 
+                case LogLevel.Critical:
                 case LogLevel.Error:
                     _logger.Error(formattedTxt);
                     break;
@@ -255,6 +290,7 @@ namespace MelonLoader.Support
                     break;
 
                 case LogLevel.Information:
+                case LogLevel.None:
                 default:
                     _logger.Msg(formattedTxt);
                     break;

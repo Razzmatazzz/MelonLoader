@@ -24,18 +24,18 @@ namespace MelonLoader.Il2CppAssemblyGenerator.Packages
                 return false;
             if (string.IsNullOrEmpty(Version))
                 return false;
-            else
-            {
-                if (!File.Exists(FilePath))
-                    return true;
-                byte[] hash = lemonSHA512.ComputeHash(File.ReadAllBytes(FilePath));
-                StringBuilder hashstrb = new StringBuilder(128);
-                foreach (byte b in hash)
-                    hashstrb.Append(b.ToString("x2"));
-                string hashstr = hashstrb.ToString();
-                if (!hashstr.Equals(Version, StringComparison.OrdinalIgnoreCase))
-                    return true;
-            }
+
+            if (!File.Exists(FilePath))
+                return true;
+
+            byte[] hash = lemonSHA512.ComputeHash(File.ReadAllBytes(FilePath));
+            StringBuilder hashstrb = new StringBuilder(128);
+            foreach (byte b in hash)
+                hashstrb.Append(b.ToString("x2"));
+            string hashstr = hashstrb.ToString();
+            if (!hashstr.Equals(Version, StringComparison.OrdinalIgnoreCase))
+                return true;
+
             return false;
         }
     }

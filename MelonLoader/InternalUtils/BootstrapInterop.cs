@@ -4,7 +4,6 @@ using System.Runtime.InteropServices;
 
 #if NET6_0_OR_GREATER
 using MelonLoader.CoreClrUtils;
-using MelonLoader.InternalUtils;
 #endif
 
 namespace MelonLoader.InternalUtils;
@@ -74,20 +73,28 @@ internal static unsafe class BootstrapInterop
 #endif
     }
 
-    internal static void Initialize(nint bootstrapHandle)
+    // Herp: This unfortunately needs to return a string with the error message
+    // Mono doesn't seem to rethrow Exceptions to mono_runtime_invoke properly in some rare cases
+    internal static string Initialize(nint bootstrapHandle)
     {
-        Library = new NativeLibrary<BootstrapLibrary>(bootstrapHandle).Instance;
+        try
+        {
+            Library = new NativeLibrary<BootstrapLibrary>(bootstrapHandle).Instance;
+        }
+        catch (Exception ex)
+        {
+            return ex.ToString();
+        }
 
         try
         {
             Core.Initialize();
+            return null;
         }
         catch (Exception ex)
         {
             MelonLogger.Error("Failed to initialize MelonLoader");
-            MelonLogger.Error(ex);
-
-            throw new("Error at init");
+            return ex.ToString();
         }
     }
 

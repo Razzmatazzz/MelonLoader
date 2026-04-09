@@ -62,7 +62,7 @@ internal static class MonoHandler
 
         if (foundOverridenFile == null)
             return Mono.ImageOpenFromDataWithName(data, dataLen, needCopy, ref status, refonly, name);
-        
+
         MelonDebug.Log($"Overriding the image load of {name} to {foundOverridenFile}");
         byte[] newDataArray = File.ReadAllBytes(foundOverridenFile);
         uint newDataLen = (uint)newDataArray.Length;
@@ -109,6 +109,13 @@ internal static class MonoHandler
             newAssembliesPathSb.Append(baseOverridesDir);
             newAssembliesPathSb.Append(MonoPathSeparator);
         }
+        else if (LoaderConfig.Current.UnityEngine.MBEPatch)
+        {
+            string baseOverridesDir = Path.Combine(LoaderConfig.Current.Loader.BaseDirectory, "MelonLoader", "Dependencies", "MonoBleedingEdgePatches");
+            newAssembliesPathSb.Append(baseOverridesDir);
+            newAssembliesPathSb.Append(MonoPathSeparator);
+        }
+
         newAssembliesPathSb.Append(Mono.AssemblyGetrootdir());
 
         string newAssembliesPath = newAssembliesPathSb.ToString();
@@ -200,26 +207,58 @@ internal static class MonoHandler
             Core.Logger.Error($"Failed to load the Mono MelonLoader assembly");
             return;
         }
-
         var image = Mono.AssemblyGetImage(assembly);
+
         var interopClass = Mono.ClassFromName(image, "MelonLoader.InternalUtils", "BootstrapInterop");
+        if (interopClass == 0)
+        {
+            Core.Logger.Error("Managed did not return BootstrapInterop");
+            return;
+        }
 
         var initMethod = Mono.ClassGetMethodFromName(interopClass, "Initialize", 1);
-        Mono.ClassGetMethodFromName(interopClass, "Start", 0);
+        if (initMethod == 0)
+        {
+            Core.Logger.Error("Managed did not return BootstrapInterop.Initialize");
+            return;
+        }
 
         var assemblyManagerClass = Mono.ClassFromName(image, "MelonLoader.Resolver", "AssemblyManager");
+        if (assemblyManagerClass == 0)
+        {
+            Core.Logger.Error("Managed did not return AssemblyManager");
+            return;
+        }
 
         assemblyManagerSearchAssembly = Mono.ClassGetMethodFromName(assemblyManagerClass, "SearchAssembly", 5);
+        if (assemblyManagerSearchAssembly == 0)
+        {
+            Core.Logger.Error("Managed did not return AssemblyManager.SearchAssembly");
+            return;
+        }
 
-        nint ex = 0;
         MelonDebug.Log("Invoking managed core init");
 
+        nint ex = 0;
         var bootstrapHandle = Core.LibraryHandle;
         var initArgs = stackalloc nint*[]
         {
             &bootstrapHandle
         };
-        Mono.RuntimeInvoke(initMethod, 0, (void**)initArgs, ref ex);
+        
+        nint returnVal = Mono.RuntimeInvoke(initMethod, 0, (void**)initArgs, ref ex);
+        if (returnVal != 0)
+        {
+            string? monoStr = Mono.MonoStringToString(returnVal);
+            if (monoStr != null)
+                Core.Logger.Error(monoStr);
+        }
+
+        if (ex != 0)
+        {
+            Core.Logger.Error("Failed to invoke the managed init function");
+            Mono.LogMonoException(ex);
+        }
     }
 
     internal static void InstallHooks()

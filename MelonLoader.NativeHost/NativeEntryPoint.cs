@@ -39,7 +39,9 @@ internal static unsafe class NativeEntryPoint
         startDel = BootstrapInterop.Start;
         *startFunc = Marshal.GetFunctionPointerForDelegate(startDel);
 
-        BootstrapInterop.Initialize(bootstrapHandle);
+        string err = BootstrapInterop.Initialize(bootstrapHandle);
+        if (err != null)
+            throw new Exception(err);
     }
 
     private static Assembly? OnResolveAssembly(AssemblyLoadContext alc, AssemblyName name)

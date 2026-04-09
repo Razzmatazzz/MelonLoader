@@ -11,7 +11,7 @@ internal static class WineUtils
     static WineUtils()
     {
 #if WINDOWS
-        if (NativeLibrary.TryLoad("ntdll.dll", out var ntdll) && NativeLibrary.TryGetExport(ntdll, "wine_get_version", out _))
+        if (NativeLibrary.TryLoad("ntdll.dll", out var ntdll) && NativeFunc.TryGetExport(ntdll, "wine_get_version", out _))
             IsWine = true;
 #endif
 #if LINUX

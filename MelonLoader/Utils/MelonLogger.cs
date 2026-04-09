@@ -240,7 +240,7 @@ namespace MelonLoader
             // Regex to check for ANSI
             var cleanTxt = Regex.Replace(txt, @"(\x1B|\e|\033)\[(.*?)m", "");
 
-            PassLogMsg(txt_color, cleanTxt, namesection_color, namesection);
+            PassLogMsg(txt_color, txt, namesection_color, namesection, cleanTxt);
         }
 
         internal static void Warning(string namesection, string txt)
@@ -252,7 +252,7 @@ namespace MelonLoader
 
         internal static unsafe void WriteSpacer()
         {
-            BootstrapInterop.Library.LogMsg(null, null, 0, null, null, 0);
+            BootstrapInterop.Library.LogMsg(null, null, 0, null, null, 0, null, 0);
         }
 
         internal static void PrintModName(ColorARGB meloncolor, ColorARGB authorcolor, string name, string author, string additionalCredits, string version, string id)
@@ -264,14 +264,16 @@ namespace MelonLoader
                 PassLogMsg(DefaultTextColor, $"Additional credits: {additionalCredits}", default, null);
         }
 
-        internal static unsafe void PassLogMsg(ColorARGB msgColor, string msg, ColorARGB sectionColor, string section)
+        internal static unsafe void PassLogMsg(ColorARGB msgColor, string msg, ColorARGB sectionColor, string section, string strippedMsg = null)
         {
+            strippedMsg ??= msg;
+
             if (section == null)
             {
-                BootstrapInterop.Library.LogMsg(&msgColor, msg, msg.Length, null, null, 0);
+                BootstrapInterop.Library.LogMsg(&msgColor, msg, msg.Length, null, null, 0, strippedMsg, strippedMsg.Length);
                 return;
             }
-            BootstrapInterop.Library.LogMsg(&msgColor, msg, msg.Length, &sectionColor, section, section.Length);
+            BootstrapInterop.Library.LogMsg(&msgColor, msg, msg.Length, &sectionColor, section, section.Length, strippedMsg, strippedMsg.Length);
         }
 
         internal static void PassLogError(string msg, string section, bool warning)

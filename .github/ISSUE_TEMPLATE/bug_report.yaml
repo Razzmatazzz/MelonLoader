@@ -28,7 +28,7 @@ body:
         - label: Tried reinstalling the Game.
         - label: Tried reinstalling MelonLoader.
         - label: Tried restarting PC.
-        - label: Was able to see the Start Screen.
+        #- label: Was able to see the Start Screen.
 
   - type: textarea
     id: what-happened

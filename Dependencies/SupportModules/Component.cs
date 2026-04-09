@@ -21,6 +21,8 @@ namespace MelonLoader.Support
             if (Main.component != null)
                 return;
 
+            MelonCoroutines._hasProcessed = false;
+
             Main.obj = new GameObject();
             DontDestroyOnLoad(Main.obj);
             Main.obj.hideFlags = HideFlags.DontSave;
@@ -35,9 +37,26 @@ namespace MelonLoader.Support
             ComponentSiblingFix.SetAsLastSibling(Main.obj.transform);
         }
 
+        private void ProcessCoroutineQueue()
+        {
+            MelonCoroutines._hasProcessed = true;
+
+            if (MelonCoroutines._queue.Count <= 0)
+                return;
+
+            foreach (var queuedCoroutine in MelonCoroutines._queue)
+#if SM_Il2Cpp
+                StartCoroutine(new Il2CppSystem.Collections.IEnumerator(new MonoEnumeratorWrapper(queuedCoroutine).Pointer));
+#else
+                StartCoroutine(queuedCoroutine);
+#endif
+
+            MelonCoroutines._queue.Clear();
+        }
+
         void Start()
         {
-            if ((Main.component != null) && (Main.component != this))
+            if ((Main.component == null) || (Main.component != this))
                 return;
 
             ComponentSiblingFix.SetAsLastSibling(transform);
@@ -46,16 +65,7 @@ namespace MelonLoader.Support
 
         void Awake()
         {
-            if ((Main.component == null) || (Main.component != this))
-                return;
-
-            foreach (var queuedCoroutine in SupportModule_To.QueuedCoroutines)
-#if SM_Il2Cpp
-                StartCoroutine(new Il2CppSystem.Collections.IEnumerator(new MonoEnumeratorWrapper(queuedCoroutine).Pointer));
-#else
-                StartCoroutine(queuedCoroutine);
-#endif
-            SupportModule_To.QueuedCoroutines.Clear();
+            ProcessCoroutineQueue();
         }
 
         void Update()
