@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFrameworks>$(MonoTarget);$(DotNetTarget)</TargetFrameworks>
+        <TargetFrameworks>$(MonoTarget);$(MonoBleedingEdgeTarget);$(DotNetTarget)</TargetFrameworks>
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
         <OutputPath>$(MLOutDir)/MelonLoader</OutputPath>
         <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
@@ -13,7 +13,7 @@
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
     </PropertyGroup>
-    <ItemDefinitionGroup>
+    <ItemDefinitionGroup Condition="$(IsNuGetPack) != 'true'">
         <PackageReference>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
@@ -42,7 +42,7 @@
         <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     </ItemGroup>
     <ItemGroup Condition="'$(TargetFramework)' == '$(DotNetTarget)'">
-        <PackageReference Include="IndexRange" Version="1.1.0" />
+        <PackageReference Include="IndexRange" Version="1.1.1" />
         <PackageReference Include="Microsoft.Bcl" Version="1.1.10" />
         <PackageReference Include="Microsoft.Diagnostics.Runtime" Version="3.1.512801" />
         <PackageReference Include="Microsoft.Diagnostics.NETCore.Client" Version="0.2.661903" />
