@@ -377,5 +377,17 @@ public class LoaderConfig
         [TomlProperty("enable_cpp2il_native_method_detector")]
         [TomlPrecedingComment("Enables the NativeMethodDetector processor for Cpp2IL. Equivalent to the '--cpp2il.nativemethoddetector' launch option")]
         public bool EnableCpp2ILNativeMethodDetector { get; internal set; }
+
+        [TomlProperty("force_binary_path")]
+        [TomlPrecedingComment("Forces the Il2Cpp Assembly Generator to use a custom path to the game binary, relative to the game path")]
+        public string ForceBinaryPath { get; internal set; } = "";
+
+        [TomlProperty("force_metadata_path")]
+        [TomlPrecedingComment("Forces the Il2Cpp Assembly Generator to use a custom path to the global-metadata.dat file, relative to the game path")]
+        public string ForceMetadataPath { get; internal set; } = "";
+
+        [TomlProperty("force_unity_version")]
+        [TomlPrecedingComment("Forces Unity version for the Il2Cpp Assembly Generator")]
+        public string ForceUnityVersion { get; internal set; } = "";
     }
 }

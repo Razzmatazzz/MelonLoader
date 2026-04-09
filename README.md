@@ -184,6 +184,12 @@ force_regeneration = false
 enable_cpp2il_call_analyzer = false
 # Enables the NativeMethodDetector processor for Cpp2IL. Equivalent to the '--cpp2il.nativemethoddetector' launch option
 enable_cpp2il_native_method_detector = false
+# Forces the Il2Cpp Assembly Generator to use a custom path to the game binary, relative to the game path
+force_binary_path = ""
+# Forces the Il2Cpp Assembly Generator to use a custom path to the global-metadata.dat file, relative to the game path
+force_metadata_path = ""
+# Forces Unity version for the Il2Cpp Assembly Generator
+force_unity_version = ""
 ```
 
 ---

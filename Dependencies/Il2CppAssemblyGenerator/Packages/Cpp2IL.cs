@@ -82,32 +82,47 @@ namespace MelonLoader.Il2CppAssemblyGenerator.Packages
 #endif
 
         internal override bool Execute()
-            => Execute([
-                MelonDebug.IsEnabled() ? "--verbose" : string.Empty,
+        {
+            List<string> Arguments =  [MelonDebug.IsEnabled() ? "--verbose" : string.Empty];
 
-                "--game-path",
+            bool UseCustomMetadataPath = LoaderConfig.Current.UnityEngine.ForceBinaryPath != string.Empty && LoaderConfig.Current.UnityEngine.ForceMetadataPath != string.Empty && LoaderConfig.Current.UnityEngine.ForceUnityVersion != string.Empty;
+
+            if (!UseCustomMetadataPath)
+            {
+                Arguments.Add("--game-path");
 #if OSX
-                "\"" + MelonUtils.GetPathAncestor(Core.GameAssemblyPath, 3) + "\"",
+                Arguments.Add("\"" + MelonUtils.GetPathAncestor(Core.GameAssemblyPath, 3) + "\"");
 #else
-                "\"" + Path.GetDirectoryName(Core.GameAssemblyPath) + "\"",
+                Arguments.Add("\"" + Path.GetDirectoryName(Core.GameAssemblyPath) + "\"");
 #endif
+            }
+            else
+            {
+                Arguments.Add("--force-binary-path");
+                Arguments.Add("\"" + Path.GetDirectoryName(Core.GameAssemblyPath) + Path.DirectorySeparatorChar + LoaderConfig.Current.UnityEngine.ForceBinaryPath + "\"");
+                Arguments.Add("--force-metadata-path");
+                Arguments.Add("\"" + Path.GetDirectoryName(Core.GameAssemblyPath) + Path.DirectorySeparatorChar + LoaderConfig.Current.UnityEngine.ForceMetadataPath + "\"");
+                Arguments.Add("--force-unity-version");
+                Arguments.Add("\"" + LoaderConfig.Current.UnityEngine.ForceUnityVersion + "\"");
+            }
 
-                "--exe-name",
-                "\"" + Process.GetCurrentProcess().ProcessName + "\"",
+            Arguments.Add("--exe-name");
+            Arguments.Add("\"" + Process.GetCurrentProcess().ProcessName + "\"");
 
-                "--output-as",
-                "dummydll",
+            Arguments.Add("--output-as");
+            Arguments.Add("dummydll");
 
-                "--use-processor",
-                "attributeanalyzer",
-                "attributeinjector",
-                LoaderConfig.Current.UnityEngine.EnableCpp2ILCallAnalyzer ? "callanalyzer" : string.Empty,
-                LoaderConfig.Current.UnityEngine.EnableCpp2ILNativeMethodDetector ? "nativemethoddetector" : string.Empty,
-                //"deobfmap",
-                //"stablenamer",
+            Arguments.Add("--use-processor");
+            Arguments.Add("attributeanalyzer");
+            Arguments.Add("attributeinjector");
+            Arguments.Add(LoaderConfig.Current.UnityEngine.EnableCpp2ILCallAnalyzer ? "callanalyzer" : string.Empty);
+            Arguments.Add(LoaderConfig.Current.UnityEngine.EnableCpp2ILNativeMethodDetector ? "nativemethoddetector" : string.Empty);
+            //Arguments.Add("deobfmap");
+            //Arguments.Add("stablenamer");
 
-            ], false, new Dictionary<string, string>() {
+            return Execute(Arguments.ToArray(), false, new Dictionary<string, string>() {
                 {"NO_COLOR", "1"},
             });
+        }
     }
 }
