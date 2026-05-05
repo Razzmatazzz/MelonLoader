@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 using Il2CppInterop.HarmonySupport;
 using HarmonyLib;
 using Mono.Cecil;
@@ -113,7 +114,7 @@ namespace MelonLoader.Fixes.Il2CppInterop
             }
 
             // Check if Injection is Needed
-            if (!ShouldInject(signatureStr, out MethodInfo unityShimMethod))
+            if (!ShouldInject(ref signatureStr, out MethodInfo unityShimMethod))
             {
                 if (_extendedDebug)
                     MelonDebug.Error($"Unable to find suitable method to inject for {signatureStr}");
@@ -163,14 +164,16 @@ namespace MelonLoader.Fixes.Il2CppInterop
             return result;
         }
 
-        private static bool ShouldInject(string signature, out MethodInfo unityShimMethod)
+        private static bool ShouldInject(ref string requestedSignature, out MethodInfo unityShimMethod)
         {
             unityShimMethod = null;
 
             // Split the Signature
-            string[] split = signature.Split("::");
+            string[] split = requestedSignature.Split("::");
             string typeName = split[0];
-            string methodName = split[1];
+            string methodDesc = split[1];
+            if (methodDesc.EndsWith("()"))
+                methodDesc = methodDesc.Substring(0, methodDesc.Length - 2);
 
             // Find Managed Type
             Type newType = FindType(typeName);
@@ -179,15 +182,13 @@ namespace MelonLoader.Fixes.Il2CppInterop
 
             // Find Managed Method
             MethodInfo targetMethod = null;
-            try
+            MethodInfo[] allMethods = newType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance);
+            foreach (var method in allMethods)
             {
-                // Get All Methods
-                MethodInfo[] allMethods = newType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance);
-                foreach (var method in allMethods)
+                try
                 {
                     // Validate Method
-                    if ((method == null)
-                        || (method.Name != methodName))
+                    if (method == null)
                         continue;
 
                     // Check for Generic Method since ICalls can't be Generic
@@ -208,7 +209,13 @@ namespace MelonLoader.Fixes.Il2CppInterop
                     // Check if Method has no Body
                     if (!method.HasMethodBody())
                         continue;
-                    
+
+                    // Validate the Method Signature
+                    string methodSignature = GetMethodSignature(method);
+                    if ((method.Name != methodDesc)
+                        && (methodSignature != methodDesc))
+                        continue;
+
                     DynamicMethodDefinition dynmethod = method.ToNewDynamicMethodDefinition();
                     ILContext ilcontext = new(dynmethod.Definition);
                     ILCursor ilcursor = new(ilcontext);
@@ -222,20 +229,22 @@ namespace MelonLoader.Fixes.Il2CppInterop
                         continue;
                     }
 
-                    // Temporarily ignore methods that use GetPinnableReference
-                    // GetPinnableReference throws MissingMethodException
+                    // Temporarily ignore methods that use ReadOnlySpan.GetPinnableReference
+                    // ReadOnlySpan.GetPinnableReference throws MissingMethodException
                     bool IsValid = true;
                     foreach (var inst in ilcursor.Instrs)
                     {
                         if (((inst.OpCode.Code == Mono.Cecil.Cil.Code.Call) ||
                              (inst.OpCode.Code == Mono.Cecil.Cil.Code.Callvirt))
                             && inst.Operand is MethodReference methodRef
-                            && methodRef.Name.Contains("GetPinnableReference"))
+                            && methodRef.Name.Contains("GetPinnableReference")
+                            && methodRef.DeclaringType.Name.Contains("ReadOnlySpan"))
                         {
                             IsValid = false;
                             break;
                         }
                     }
+
                     if (!IsValid)
                     {
                         ilcontext.Dispose();
@@ -244,19 +253,16 @@ namespace MelonLoader.Fixes.Il2CppInterop
                     }
 
                     // Found Shim
-                    targetMethod = method;
+                    unityShimMethod = method;
+                    requestedSignature = $"{typeName}::{methodSignature}";
                     ilcontext.Dispose();
                     dynmethod.Dispose();
-                    break;
+                    return true;
                 }
+                catch {  }
             }
-            catch { return false; }
-            if (targetMethod == null)
-                return false;
-
-            // Inject ICall
-            unityShimMethod = targetMethod;
-            return true;
+            
+            return false;
         }
 
         private static (object, DynamicMethodDefinition, MethodInfo, IntPtr) GenerateTrampoline(MethodInfo unityShimMethod)
@@ -274,6 +280,16 @@ namespace MelonLoader.Fixes.Il2CppInterop
             // Return the New Method
             MethodInfo newMethod = trampoline.Generate().Pin();
             return (patcher, trampoline, newMethod, newMethod.GetNativeStart());
+        }
+        
+        private static string GetMethodSignature(MethodBase method)
+        {
+            var parameters = method.GetParameters();
+            if (parameters.Length <= 0)
+                return method.Name;
+            
+            string str = parameters.Join((p => $"{p.ParameterType.FullDescription().Replace("Il2Cpp.", string.Empty).Replace("Il2Cpp", string.Empty)}"), ",");
+            return ($"{method.Name}({str})");
         }
     }
 }
